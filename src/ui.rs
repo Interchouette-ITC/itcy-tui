@@ -71,16 +71,20 @@ fn draw_health(frame: &mut Frame, area: Rect, model: &StatusModel) {
         Line::from(format!("url:    {}", model.health_url)),
         Line::from(format!("detail: {detail}")),
         Line::from(""),
-        Line::from("q quit  ·  r refresh"),
+        Line::from("keys:  q / Esc / Ctrl-C  quit   ·   r  refresh now"),
     ];
 
-    let body = Paragraph::new(lines).block(Block::default().borders(Borders::ALL).title("live"));
+    let body = Paragraph::new(lines).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("live (full-screen TUI)"),
+    );
     frame.render_widget(body, area);
 }
 
 fn draw_footer(frame: &mut Frame, area: Rect, model: &StatusModel) {
     let footer = Paragraph::new(format!(
-        "polls: {}  ·  Written by AI - ITCy - ratatui showcase",
+        "polls: {}   |   Written by AI - ITCy - ratatui showcase",
         model.ticks
     ));
     frame.render_widget(footer, area);
