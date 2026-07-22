@@ -11,6 +11,23 @@ Ratatui status UI for **ITCy** (Interchouette ITC AI experience).
 
 Public showcase of the early TUI stage. Develop on the **Interchouette** fork; open PRs into **Interchouette-ITC**.
 
+## Run
+
+```bash
+# product must answer /health (from /opt3/itcy):
+#   make run
+make test
+make run
+# q quit · r refresh
+# override URL: ITCY_HEALTH_URL=http://127.0.0.1:4700/health make run
+```
+
+## What you see
+
+- Brand header **ITCy**
+- Live `health: ok` / `DOWN` from the product probe
+- Poll count footer
+
 ## Status
 
-Scaffold only. Ratatui pane + live health wiring lands in stage **S0t** (see ITCy work contract).
+S0t: ratatui pane + live `/health` wiring.
