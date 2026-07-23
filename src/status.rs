@@ -55,12 +55,12 @@ impl RuntimeStatus {
     #[must_use]
     pub fn webhook_detail(&self) -> String {
         if !self.github_webhook_configured {
-            return "GITHUB_WEBHOOK_SECRET unset; POST /hooks/github returns 503".into();
+            return "GITHUB_WEBHOOK_SECRET unset; POST /github/webhook_ITCy returns 503".into();
         }
         match &self.last_bat_wake {
-            None => "secret set; POST /hooks/github ready · last wake never".into(),
+            None => "secret set; POST /github/webhook_ITCy ready · last wake never".into(),
             Some(_) => format!(
-                "secret set; POST /hooks/github ready · last wake {}",
+                "secret set; POST /github/webhook_ITCy ready · last wake {}",
                 self.wake_summary()
             ),
         }

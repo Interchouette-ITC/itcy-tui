@@ -31,7 +31,7 @@ A **full-screen** bordered UI (not a single shell line):
 - Header: **ITCy** · Interchouette ITC status
 - `health: ok` (green) when product answers, or `DOWN` (red) with the error
 - `providers` + `freeform` / `draft` routes from `GET /status`
-- `webhook: ok` with `url:` (`/hooks/github`) + `detail:` (secret ready / last wake)
+- `webhook: ok` with `url:` (`/github/webhook_ITCy`) + `detail:` (secret ready / last wake)
 - Footer: `polls: N` incrementing ~1/s
 - Live process logs are **not** in the TUI: attach the product window (`screen -dRR itcy`)
 - After quit, your normal shell prompt returns cleanly
