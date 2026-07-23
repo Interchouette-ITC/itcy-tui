@@ -45,9 +45,24 @@ impl RuntimeStatus {
     #[must_use]
     pub fn webhook_label(&self) -> &'static str {
         if self.github_webhook_configured {
-            "configured"
+            "ok"
         } else {
             "not configured"
+        }
+    }
+
+    /// Detail line mirroring health: ready state + last wake summary.
+    #[must_use]
+    pub fn webhook_detail(&self) -> String {
+        if !self.github_webhook_configured {
+            return "GITHUB_WEBHOOK_SECRET unset; POST /hooks/github returns 503".into();
+        }
+        match &self.last_bat_wake {
+            None => "secret set; POST /hooks/github ready · last wake never".into(),
+            Some(_) => format!(
+                "secret set; POST /hooks/github ready · last wake {}",
+                self.wake_summary()
+            ),
         }
     }
 
@@ -133,6 +148,16 @@ mod tests {
         assert!(summary.contains("approved"));
         assert!(summary.contains("#3"));
         assert!(summary.contains("gRoussac"));
-        assert_eq!(s.webhook_label(), "configured");
+        assert_eq!(s.webhook_label(), "ok");
+        let detail = s.webhook_detail();
+        assert!(detail.contains("ready"));
+        assert!(detail.contains("approved"));
+    }
+
+    #[test]
+    fn webhook_detail_when_secret_missing() {
+        assert!(sample()
+            .webhook_detail()
+            .contains("GITHUB_WEBHOOK_SECRET unset"));
     }
 }

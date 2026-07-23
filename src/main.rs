@@ -12,7 +12,11 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 use std::env;
 use std::io::{self, stdout, Write};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
+
+/// Set by SIGINT/SIGTERM so the loop can restore the tty before exit.
+static STOP: AtomicBool = AtomicBool::new(false);
 
 fn main() -> io::Result<()> {
     let health_url = env::var("ITCY_HEALTH_URL").unwrap_or_else(|_| DEFAULT_HEALTH_URL.to_string());
@@ -28,27 +32,33 @@ fn main() -> io::Result<()> {
     let health = fetch_health(&health_url);
     let runtime = fetch_status(&status_url);
 
+    install_signal_handlers();
     install_panic_hook();
-    let _guard = TerminalGuard::enter()?;
+    let use_alt = !inside_gnu_screen();
+    let _guard = TerminalGuard::enter(use_alt)?;
 
     let backend = CrosstermBackend::new(stdout());
     let mut terminal = Terminal::new(backend)?;
-    // Hard clear: GNU screen without `altscreen on` ignores the alt buffer and
-    // would otherwise composite over leftover shell / docker / cargo output.
+    // Always hard-clear the surface we draw on (main buffer under GNU screen).
     terminal.clear()?;
 
     let mut model = StatusModel::new(health_url.clone(), status_url.clone(), health, runtime);
     let poll = Duration::from_secs(1);
     let mut last = Instant::now() - poll;
 
-    run_loop(
+    let result = run_loop(
         &mut terminal,
         &mut model,
         &health_url,
         &status_url,
         poll,
         &mut last,
-    )
+    );
+
+    // Wipe the drawn frame before Drop restores modes (avoids leftover boxes).
+    let _ = terminal.clear();
+    hard_reset_tty();
+    result
 }
 
 fn refresh(model: &mut StatusModel, health_url: &str, status_url: &str) {
@@ -66,6 +76,10 @@ fn run_loop(
     last: &mut Instant,
 ) -> io::Result<()> {
     loop {
+        if STOP.load(Ordering::SeqCst) {
+            break;
+        }
+
         if last.elapsed() >= poll {
             refresh(model, health_url, status_url);
             *last = Instant::now();
@@ -93,49 +107,72 @@ fn is_quit_key(code: &KeyCode, modifiers: KeyModifiers) -> bool {
         || (*code == KeyCode::Char('c') && modifiers.contains(KeyModifiers::CONTROL))
 }
 
-fn wipe_terminal() {
-    let mut out = stdout();
-    let _ = out.execute(Clear(ClearType::All));
-    let _ = out.execute(Clear(ClearType::Purge));
-    let _ = out.flush();
+/// GNU screen sets `STY`. Its default config often ignores the xterm alt buffer,
+/// so Enter/LeaveAlternateScreen leaves a wrecked main buffer on exit.
+fn inside_gnu_screen() -> bool {
+    env::var_os("STY").is_some()
 }
 
-fn restore_terminal() {
-    let _ = disable_raw_mode();
+/// Nuclear tty reset: works on main buffer (screen) and after leaving alt screen.
+fn hard_reset_tty() {
     let mut out = stdout();
-    let _ = out.execute(LeaveAlternateScreen);
+    let _ = write!(
+        out,
+        "\x1b[0m\x1b[?25h\x1b[?1049l\x1b[?47l\x1b[2J\x1b[3J\x1b[H"
+    );
     let _ = out.execute(Clear(ClearType::All));
+    let _ = out.execute(Clear(ClearType::Purge));
     let _ = out.execute(cursor::Show);
     let _ = out.flush();
 }
 
+fn restore_terminal(use_alt: bool) {
+    let _ = disable_raw_mode();
+    let mut out = stdout();
+    if use_alt {
+        let _ = out.execute(LeaveAlternateScreen);
+    }
+    let _ = out.flush();
+    hard_reset_tty();
+}
+
+fn install_signal_handlers() {
+    // Raw mode usually delivers Ctrl-C as a key; still restore if the process is signaled.
+    let _ = ctrlc::set_handler(|| {
+        STOP.store(true, Ordering::SeqCst);
+    });
+}
+
 fn install_panic_hook() {
+    let use_alt = !inside_gnu_screen();
     let prior = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
-        restore_terminal();
+        restore_terminal(use_alt);
         prior(info);
     }));
 }
 
 /// Restores the terminal on drop (normal exit, `?`, or unwind after panic hook).
-struct TerminalGuard;
+struct TerminalGuard {
+    use_alt: bool,
+}
 
 impl TerminalGuard {
-    fn enter() -> io::Result<Self> {
+    fn enter(use_alt: bool) -> io::Result<Self> {
         enable_raw_mode()?;
         let mut out = stdout();
-        out.execute(EnterAlternateScreen)?;
-        // Always wipe: works even when the host terminal ignores alt-screen (common
-        // with GNU screen unless `altscreen on` is set in `~/.screenrc`).
-        wipe_terminal();
+        if use_alt {
+            out.execute(EnterAlternateScreen)?;
+        }
+        hard_reset_tty();
         out.execute(cursor::Hide)?;
         out.flush()?;
-        Ok(Self)
+        Ok(Self { use_alt })
     }
 }
 
 impl Drop for TerminalGuard {
     fn drop(&mut self) {
-        restore_terminal();
+        restore_terminal(self.use_alt);
     }
 }
