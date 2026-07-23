@@ -42,13 +42,13 @@ impl StatusModel {
     }
 }
 
-/// Same host as `/health`, path `POST /hooks/github`.
+/// Same host as `/health`, path `POST /github/webhook_ITCy`.
 fn hooks_url_from_health(health_url: &str) -> String {
     if health_url.ends_with("/health") {
-        health_url.replacen("/health", "/hooks/github", 1)
+        health_url.replacen("/health", "/github/webhook_ITCy", 1)
     } else {
         format!(
-            "{}/hooks/github",
+            "{}/github/webhook_ITCy",
             health_url.trim_end_matches('/')
         )
     }
@@ -265,7 +265,7 @@ mod tests {
         assert!(flat.contains("webhook"), "buffer missing webhook");
         assert!(flat.contains("ok"), "buffer missing ok");
         assert!(
-            flat.contains("/hooks/github"),
+            flat.contains("/github/webhook_ITCy"),
             "buffer missing webhook url: {flat}"
         );
         assert!(flat.contains("ready"), "buffer missing webhook detail");
