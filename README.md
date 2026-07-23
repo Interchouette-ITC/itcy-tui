@@ -9,7 +9,7 @@ Ratatui status UI for **ITCy** (Interchouette ITC AI experience).
 | **Local** | `/opt3/itcy-tui` |
 | **Pairs with** | product [Interchouette-ITC/itcy](https://github.com/Interchouette-ITC/itcy) (`GET /health` on `:4700`) |
 
-Public showcase of the early TUI stage. Develop on the **Interchouette** fork; open PRs into **Interchouette-ITC**.
+Early status pane for the product. Develop on the **Interchouette** fork; open PRs into **Interchouette-ITC**.
 
 ## Run
 
@@ -31,12 +31,12 @@ A **full-screen** bordered UI (not a single shell line):
 - Header: **ITCy** · Interchouette ITC status
 - `health: ok` (green) when product answers, or `DOWN` (red) with the error
 - `providers` + `freeform` / `draft` routes from `GET /status`
-- `webhook: configured` / `not configured` + `last wake:` from S4h `/status`
+- `webhook: ok` with `url:` (`/hooks/github`) + `detail:` (secret ready / last wake)
 - Footer: `polls: N` incrementing ~1/s
 - Live process logs are **not** in the TUI: attach the product window (`screen -dRR itcy`)
 - After quit, your normal shell prompt returns cleanly
 
-If the pane looks like shell/docker/cargo junk mixed into the UI: the TUI now force-clears on start. Prefer a dedicated screen window (`itcy-tui`). Optional in `~/.screenrc`: `altscreen on`.
+If the pane looks like shell/docker/cargo junk mixed into the UI: the TUI hard-clears on start and exit. Under GNU screen it skips the alternate buffer (screen often ignores it) and wipes the main buffer instead. Prefer a dedicated screen window (`itcy-tui`). Optional in `~/.screenrc`: `altscreen on`.
 
 ## Status
 
