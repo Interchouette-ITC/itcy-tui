@@ -7,9 +7,9 @@ lint:
 test:
 	cargo test
 
-# Quiet cargo so compile banners do not stick under the first TUI frame.
+# One shell: build then exec binary so make never prints on top of the TUI frame.
 run:
-	cargo run -q
+	@cargo build -q --release && exec ./target/release/itcy-tui
 
 build:
 	cargo build --release
