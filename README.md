@@ -30,10 +30,14 @@ A **full-screen** bordered UI (not a single shell line):
 
 - Header: **ITCy** · Interchouette ITC status
 - `health: ok` (green) when product answers, or `DOWN` (red) with the error
-- `url:` of the probe
+- `providers` + `freeform` / `draft` routes from `GET /status`
+- `webhook: configured` / `not configured` + `last wake:` from S4h `/status`
 - Footer: `polls: N` incrementing ~1/s
+- Live process logs are **not** in the TUI: attach the product window (`screen -dRR itcy`)
 - After quit, your normal shell prompt returns cleanly
+
+If the pane looks like shell/docker/cargo junk mixed into the UI: the TUI now force-clears on start. Prefer a dedicated screen window (`itcy-tui`). Optional in `~/.screenrc`: `altscreen on`.
 
 ## Status
 
-S0t: ratatui pane + live `/health` wiring.
+S0t + S4h: ratatui pane + live `/health` + `/status` (providers / routes / webhook wake). Hard clear on enter (screen-safe).
