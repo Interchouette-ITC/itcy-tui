@@ -47,10 +47,7 @@ fn hooks_url_from_health(health_url: &str) -> String {
     if health_url.ends_with("/health") {
         health_url.replacen("/health", "/github/webhook_ITCy", 1)
     } else {
-        format!(
-            "{}/github/webhook_ITCy",
-            health_url.trim_end_matches('/')
-        )
+        format!("{}/github/webhook_ITCy", health_url.trim_end_matches('/'))
     }
 }
 
@@ -79,13 +76,19 @@ fn draw_title(frame: &mut Frame, area: Rect) {
                 .add_modifier(Modifier::BOLD),
         ),
         Span::styled("  ·  ", MUTED),
-        Span::styled("Interchouette ITC status", Style::default().fg(Color::Yellow)),
+        Span::styled(
+            "Interchouette ITC status",
+            Style::default().fg(Color::Yellow),
+        ),
     ]))
     .block(
         Block::default()
             .borders(Borders::ALL)
             .border_style(Style::default().fg(Color::Cyan))
-            .title(Span::styled("itcy-tui", ACCENT.add_modifier(Modifier::BOLD))),
+            .title(Span::styled(
+                "itcy-tui",
+                ACCENT.add_modifier(Modifier::BOLD),
+            )),
     );
     frame.render_widget(title, area);
 }
@@ -141,6 +144,11 @@ fn draw_body(frame: &mut Frame, area: Rect, model: &StatusModel) {
                 Style::default().fg(Color::LightBlue),
             ));
             lines.push(labeled(
+                "load:",
+                format!("head={} | {}", rt.load_route_head, rt.load_route),
+                Style::default().fg(Color::LightCyan),
+            ));
+            lines.push(labeled(
                 "draft:",
                 format!("head={} | {}", rt.draft_route_head, rt.draft_route),
                 Style::default().fg(Color::LightBlue),
@@ -181,10 +189,20 @@ fn draw_body(frame: &mut Frame, area: Rect, model: &StatusModel) {
     lines.push(Line::from(""));
     lines.push(Line::from(vec![
         Span::styled("keys:  ", LABEL),
-        Span::styled("q", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "q",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::styled(" / Esc / Ctrl-C  quit", MUTED),
         Span::styled("   ·   ", MUTED),
-        Span::styled("r", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "r",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::styled("  refresh now", MUTED),
     ]));
     lines.push(Line::from(vec![
@@ -241,6 +259,8 @@ mod tests {
             providers: vec!["ollama".into()],
             freeform_route_head: "ollama:gemma4:12b".into(),
             freeform_route: "ollama:gemma4:12b, ollama:llama3.1:8b".into(),
+            load_route_head: "ollama:llama3.1:8b".into(),
+            load_route: "ollama:llama3.1:8b, ollama:gemma3:4b".into(),
             draft_route_head: "ollama:gemma4:12b".into(),
             draft_route: "ollama:gemma4:12b".into(),
             github_webhook_configured: true,
