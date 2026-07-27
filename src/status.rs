@@ -24,12 +24,20 @@ pub struct RuntimeStatus {
     pub providers: Vec<String>,
     pub freeform_route_head: String,
     pub freeform_route: String,
+    #[serde(default = "default_route_empty")]
+    pub load_route_head: String,
+    #[serde(default = "default_route_empty")]
+    pub load_route: String,
     pub draft_route_head: String,
     pub draft_route: String,
     #[serde(default)]
     pub github_webhook_configured: bool,
     #[serde(default)]
     pub last_bat_wake: Option<BatWakeSnapshot>,
+}
+
+fn default_route_empty() -> String {
+    "(empty)".into()
 }
 
 impl RuntimeStatus {
@@ -114,6 +122,8 @@ mod tests {
             providers: vec![],
             freeform_route_head: "(none)".into(),
             freeform_route: "(empty)".into(),
+            load_route_head: "(none)".into(),
+            load_route: "(empty)".into(),
             draft_route_head: "(none)".into(),
             draft_route: "(empty)".into(),
             github_webhook_configured: false,
