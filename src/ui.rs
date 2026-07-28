@@ -1,5 +1,6 @@
 //! Ratatui widgets for the ITCy status pane.
 
+use crate::commands::SLASH_COMMANDS;
 use crate::health::HealthStatus;
 use crate::status::RuntimeStatus;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
@@ -12,6 +13,14 @@ const LABEL: Style = Style::new().fg(Color::DarkGray);
 const ACCENT: Style = Style::new().fg(Color::Cyan);
 const MUTED: Style = Style::new().fg(Color::Gray);
 
+/// Which pane the TUI is showing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ViewMode {
+    #[default]
+    Live,
+    Commands,
+}
+
 #[derive(Debug, Clone)]
 pub struct StatusModel {
     pub health_url: String,
@@ -20,6 +29,7 @@ pub struct StatusModel {
     pub health: HealthStatus,
     pub runtime: Option<RuntimeStatus>,
     pub ticks: u64,
+    pub view: ViewMode,
 }
 
 impl StatusModel {
@@ -38,7 +48,16 @@ impl StatusModel {
             health,
             runtime,
             ticks: 0,
+            view: ViewMode::Live,
         }
+    }
+
+    /// Toggle live status ↔ slash-command reference.
+    pub fn toggle_commands(&mut self) {
+        self.view = match self.view {
+            ViewMode::Live => ViewMode::Commands,
+            ViewMode::Commands => ViewMode::Live,
+        };
     }
 }
 
@@ -63,7 +82,10 @@ pub fn draw(frame: &mut Frame, model: &StatusModel) {
         .split(frame.area());
 
     draw_title(frame, chunks[0]);
-    draw_body(frame, chunks[1], model);
+    match model.view {
+        ViewMode::Live => draw_body(frame, chunks[1], model),
+        ViewMode::Commands => draw_commands(frame, chunks[1]),
+    }
     draw_footer(frame, chunks[2], model);
 }
 
@@ -176,6 +198,34 @@ fn draw_body(frame: &mut Frame, area: Rect, model: &StatusModel) {
             ]));
             lines.push(labeled("url:", &model.webhook_url, ACCENT));
             lines.push(labeled("detail:", &webhook_detail, webhook_detail_style));
+
+            let delivery_label = rt.delivery_label();
+            let delivery_color = match delivery_label {
+                "ok" => Color::LightGreen,
+                "WARN" => Color::LightRed,
+                _ => Color::LightYellow,
+            };
+            lines.push(Line::from(vec![
+                Span::styled(format!("{:<11}", "delivery:"), LABEL),
+                Span::styled(
+                    delivery_label.to_string(),
+                    Style::default()
+                        .fg(delivery_color)
+                        .add_modifier(Modifier::BOLD),
+                ),
+            ]));
+            lines.push(labeled(
+                "last:",
+                rt.delivery_detail(),
+                Style::default().fg(Color::Gray),
+            ));
+            if let Some(warn) = rt.delivery_warn_line() {
+                lines.push(labeled(
+                    "warn:",
+                    warn,
+                    Style::default().fg(Color::LightYellow),
+                ));
+            }
         }
         None => {
             lines.push(labeled(
@@ -187,24 +237,7 @@ fn draw_body(frame: &mut Frame, area: Rect, model: &StatusModel) {
     }
 
     lines.push(Line::from(""));
-    lines.push(Line::from(vec![
-        Span::styled("keys:  ", LABEL),
-        Span::styled(
-            "q",
-            Style::default()
-                .fg(Color::Yellow)
-                .add_modifier(Modifier::BOLD),
-        ),
-        Span::styled(" / Esc / Ctrl-C  quit", MUTED),
-        Span::styled("   ·   ", MUTED),
-        Span::styled(
-            "r",
-            Style::default()
-                .fg(Color::Yellow)
-                .add_modifier(Modifier::BOLD),
-        ),
-        Span::styled("  refresh now", MUTED),
-    ]));
+    lines.push(keys_line());
     lines.push(Line::from(vec![
         Span::styled("logs:  ", LABEL),
         Span::styled(
@@ -225,6 +258,79 @@ fn draw_body(frame: &mut Frame, area: Rect, model: &StatusModel) {
             )),
     );
     frame.render_widget(body, area);
+}
+
+fn draw_commands(frame: &mut Frame, area: Rect) {
+    let mut lines = vec![
+        Line::from(vec![Span::styled(
+            "Slack #itcy slash workflows",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        )]),
+        Line::from(vec![Span::styled(
+            "Freeform chat: anything else (no draft/BAT/corpus ingest)",
+            MUTED,
+        )]),
+        Line::from(""),
+    ];
+
+    for cmd in SLASH_COMMANDS {
+        let mut spans = vec![Span::styled(
+            cmd.usage.to_string(),
+            ACCENT.add_modifier(Modifier::BOLD),
+        )];
+        if cmd.stub {
+            spans.push(Span::styled("  (stub)", Style::default().fg(Color::Yellow)));
+        }
+        spans.push(Span::styled(format!("  - {}", cmd.summary), MUTED));
+        lines.push(Line::from(spans));
+    }
+
+    lines.push(Line::from(""));
+    lines.push(keys_line());
+
+    let body = Paragraph::new(lines).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(Color::Blue))
+            .title(Span::styled(
+                "slash commands",
+                Style::default()
+                    .fg(Color::LightCyan)
+                    .add_modifier(Modifier::BOLD),
+            )),
+    );
+    frame.render_widget(body, area);
+}
+
+fn keys_line() -> Line<'static> {
+    Line::from(vec![
+        Span::styled("keys:  ", LABEL),
+        Span::styled(
+            "q",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(" / Esc / Ctrl-C  quit", MUTED),
+        Span::styled("   ·   ", MUTED),
+        Span::styled(
+            "r",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled("  refresh", MUTED),
+        Span::styled("   ·   ", MUTED),
+        Span::styled(
+            "c",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled("  commands", MUTED),
+    ])
 }
 
 fn draw_footer(frame: &mut Frame, area: Rect, model: &StatusModel) {
@@ -251,11 +357,8 @@ mod tests {
     use ratatui::backend::TestBackend;
     use ratatui::Terminal;
 
-    #[test]
-    fn render_shows_ok_and_providers() {
-        let backend = TestBackend::new(80, 20);
-        let mut terminal = Terminal::new(backend).expect("terminal");
-        let runtime = RuntimeStatus {
+    fn sample_runtime() -> RuntimeStatus {
+        RuntimeStatus {
             providers: vec!["ollama".into()],
             freeform_route_head: "ollama:gemma4:12b".into(),
             freeform_route: "ollama:gemma4:12b, ollama:llama3.1:8b".into(),
@@ -265,7 +368,91 @@ mod tests {
             draft_route: "ollama:gemma4:12b".into(),
             github_webhook_configured: true,
             last_bat_wake: None,
-        };
+            last_github_delivery: Some(crate::status::GithubDeliverySnapshot {
+                at_unix: 1,
+                event: "ping".into(),
+                delivery_id: "d1".into(),
+                outcome: "ok".into(),
+                http_status: 200,
+            }),
+            github_delivery_warn: None,
+        }
+    }
+
+    #[test]
+    fn render_shows_ok_and_providers() {
+        let backend = TestBackend::new(80, 28);
+        let mut terminal = Terminal::new(backend).expect("terminal");
+        let model = StatusModel::new(
+            "http://127.0.0.1:4700/health",
+            "http://127.0.0.1:4700/status",
+            HealthStatus::Ok,
+            Some(sample_runtime()),
+        );
+        terminal.draw(|f| draw(f, &model)).expect("draw");
+        let buffer = terminal.backend().buffer().clone();
+        let flat: String = buffer
+            .content()
+            .iter()
+            .map(|c| c.symbol().to_string())
+            .collect();
+        assert!(flat.contains("ok"), "buffer missing ok: {flat}");
+        assert!(flat.contains("providers"), "buffer missing providers");
+        assert!(flat.contains("ollama"), "buffer missing ollama");
+        assert!(flat.contains("webhook"), "buffer missing webhook");
+        assert!(
+            flat.contains("/github/webhook_ITCy"),
+            "buffer missing webhook url: {flat}"
+        );
+        assert!(flat.contains("ready"), "buffer missing webhook detail");
+        assert!(flat.contains("delivery"), "buffer missing delivery");
+        assert!(flat.contains("ping"), "buffer missing last delivery event");
+        assert!(
+            !flat.contains("showcase"),
+            "footer must not say showcase: {flat}"
+        );
+    }
+
+    #[test]
+    fn render_commands_pane_shows_ingest() {
+        let backend = TestBackend::new(100, 24);
+        let mut terminal = Terminal::new(backend).expect("terminal");
+        let mut model = StatusModel::new(
+            "http://127.0.0.1:4700/health",
+            "http://127.0.0.1:4700/status",
+            HealthStatus::Ok,
+            None,
+        );
+        model.toggle_commands();
+        assert_eq!(model.view, ViewMode::Commands);
+        terminal.draw(|f| draw(f, &model)).expect("draw");
+        let buffer = terminal.backend().buffer().clone();
+        let flat: String = buffer
+            .content()
+            .iter()
+            .map(|c| c.symbol().to_string())
+            .collect();
+        assert!(flat.contains("/ingest"), "missing /ingest: {flat}");
+        assert!(
+            flat.contains("external url"),
+            "missing external url usage: {flat}"
+        );
+        assert!(flat.contains("(stub)"), "missing stub marker: {flat}");
+    }
+
+    #[test]
+    fn render_warn_delivery() {
+        let backend = TestBackend::new(80, 28);
+        let mut terminal = Terminal::new(backend).expect("terminal");
+        let mut runtime = sample_runtime();
+        runtime.github_delivery_warn = Some("HMAC reject".into());
+        runtime.last_github_delivery = Some(crate::status::GithubDeliverySnapshot {
+            at_unix: 1,
+            event: "push".into(),
+            delivery_id: "d2".into(),
+            outcome: "reject_hmac".into(),
+            http_status: 401,
+        });
         let model = StatusModel::new(
             "http://127.0.0.1:4700/health",
             "http://127.0.0.1:4700/status",
@@ -279,19 +466,7 @@ mod tests {
             .iter()
             .map(|c| c.symbol().to_string())
             .collect();
-        assert!(flat.contains("ok"), "buffer missing ok: {flat}");
-        assert!(flat.contains("providers"), "buffer missing providers");
-        assert!(flat.contains("ollama"), "buffer missing ollama");
-        assert!(flat.contains("webhook"), "buffer missing webhook");
-        assert!(flat.contains("ok"), "buffer missing ok");
-        assert!(
-            flat.contains("/github/webhook_ITCy"),
-            "buffer missing webhook url: {flat}"
-        );
-        assert!(flat.contains("ready"), "buffer missing webhook detail");
-        assert!(
-            !flat.contains("showcase"),
-            "footer must not say showcase: {flat}"
-        );
+        assert!(flat.contains("WARN"), "missing WARN: {flat}");
+        assert!(flat.contains("HMAC reject"), "missing warn text: {flat}");
     }
 }
