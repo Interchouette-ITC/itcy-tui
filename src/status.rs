@@ -28,6 +28,28 @@ pub struct GithubDeliverySnapshot {
     pub http_status: u16,
 }
 
+/// Tor enrich queue + drip side signals from `/status`.
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+pub struct EnrichStatusSnapshot {
+    pub pending: u64,
+    pub in_flight: u64,
+    pub ok: u64,
+    pub failed: u64,
+    pub skip: u64,
+    pub none: u64,
+    pub queue_remaining: u64,
+    #[serde(default)]
+    pub next_enrich_after: Option<String>,
+    #[serde(default)]
+    pub wall_streak: Option<u32>,
+    #[serde(default)]
+    pub last_wall_source_id: Option<i64>,
+    #[serde(default)]
+    pub enrich_pid: Option<i32>,
+    #[serde(default)]
+    pub enrich_running: bool,
+}
+
 /// Provider pool + failover routes + S4h/S4w webhook fields from the always-on binary.
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 pub struct RuntimeStatus {
@@ -48,10 +70,64 @@ pub struct RuntimeStatus {
     pub last_github_delivery: Option<GithubDeliverySnapshot>,
     #[serde(default)]
     pub github_delivery_warn: Option<String>,
+    #[serde(default)]
+    pub enrich: Option<EnrichStatusSnapshot>,
 }
 
 fn default_route_empty() -> String {
     "(empty)".into()
+}
+
+impl EnrichStatusSnapshot {
+    /// Short enrich status label for the live pane.
+    #[must_use]
+    pub fn enrich_label(&self) -> &'static str {
+        if self.enrich_running {
+            "running"
+        } else if self.queue_remaining == 0 {
+            "idle"
+        } else {
+            "queued"
+        }
+    }
+
+    /// Counts line: remaining + ok/pending/failed/none/in_flight/skip.
+    #[must_use]
+    pub fn enrich_detail(&self) -> String {
+        format!(
+            "ok={} pending={} failed={} none={} in_flight={} skip={}",
+            self.ok, self.pending, self.failed, self.none, self.in_flight, self.skip
+        )
+    }
+
+    /// Queue remaining + next due.
+    #[must_use]
+    pub fn queue_detail(&self) -> String {
+        match &self.next_enrich_after {
+            Some(next) if !next.is_empty() => {
+                format!("remaining={} · next {}", self.queue_remaining, next)
+            }
+            _ => format!("remaining={}", self.queue_remaining),
+        }
+    }
+
+    /// Wall streak + pid alive.
+    #[must_use]
+    pub fn wall_detail(&self) -> String {
+        let streak = self
+            .wall_streak
+            .map(|n| n.to_string())
+            .unwrap_or_else(|| "-".into());
+        let pid = match self.enrich_pid {
+            Some(p) if self.enrich_running => format!("{p} alive"),
+            Some(p) => format!("{p} dead"),
+            None => "no pid file".into(),
+        };
+        match self.last_wall_source_id {
+            Some(id) => format!("streak={streak} · pid {pid} · last_wall={id}"),
+            None => format!("streak={streak} · pid {pid}"),
+        }
+    }
 }
 
 impl RuntimeStatus {
@@ -179,6 +255,24 @@ mod tests {
             last_bat_wake: None,
             last_github_delivery: None,
             github_delivery_warn: None,
+            enrich: None,
+        }
+    }
+
+    fn sample_enrich() -> EnrichStatusSnapshot {
+        EnrichStatusSnapshot {
+            pending: 171,
+            in_flight: 0,
+            ok: 85,
+            failed: 1,
+            skip: 1,
+            none: 37,
+            queue_remaining: 209,
+            next_enrich_after: Some("2026-07-29T05:22:35+02:00".into()),
+            wall_streak: Some(0),
+            last_wall_source_id: None,
+            enrich_pid: Some(2666262),
+            enrich_running: true,
         }
     }
 
@@ -261,5 +355,29 @@ mod tests {
         s.github_delivery_warn = Some("502 upstream".into());
         assert_eq!(s.delivery_label(), "WARN");
         assert_eq!(s.delivery_warn_line(), Some("502 upstream"));
+    }
+
+    #[test]
+    fn enrich_labels() {
+        let e = sample_enrich();
+        assert_eq!(e.enrich_label(), "running");
+        assert!(e.enrich_detail().contains("ok=85"));
+        assert!(e.queue_detail().contains("remaining=209"));
+        assert!(e.queue_detail().contains("next "));
+        assert!(e.wall_detail().contains("streak=0"));
+        assert!(e.wall_detail().contains("2666262 alive"));
+    }
+
+    #[test]
+    fn enrich_idle_when_empty_queue_and_not_running() {
+        let mut e = sample_enrich();
+        e.queue_remaining = 0;
+        e.pending = 0;
+        e.failed = 0;
+        e.none = 0;
+        e.in_flight = 0;
+        e.enrich_running = false;
+        assert_eq!(e.enrich_label(), "idle");
+        assert!(e.wall_detail().contains("dead"));
     }
 }
