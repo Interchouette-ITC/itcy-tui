@@ -96,6 +96,9 @@ fn run_loop(
                     refresh(model, health_url, status_url);
                     *last = Instant::now();
                 }
+                if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('c') {
+                    model.toggle_commands();
+                }
             }
         }
     }
