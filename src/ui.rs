@@ -226,6 +226,47 @@ fn draw_body(frame: &mut Frame, area: Rect, model: &StatusModel) {
                     Style::default().fg(Color::LightYellow),
                 ));
             }
+            lines.push(Line::from(""));
+            match &rt.enrich {
+                Some(en) => {
+                    let enrich_color = match en.enrich_label() {
+                        "running" => Color::LightGreen,
+                        "idle" => Color::Gray,
+                        _ => Color::LightYellow,
+                    };
+                    lines.push(Line::from(vec![
+                        Span::styled(format!("{:<11}", "enrich:"), LABEL),
+                        Span::styled(
+                            en.enrich_label().to_string(),
+                            Style::default()
+                                .fg(enrich_color)
+                                .add_modifier(Modifier::BOLD),
+                        ),
+                    ]));
+                    lines.push(labeled(
+                        "counts:",
+                        en.enrich_detail(),
+                        Style::default().fg(Color::LightCyan),
+                    ));
+                    lines.push(labeled(
+                        "queue:",
+                        en.queue_detail(),
+                        Style::default().fg(Color::LightBlue),
+                    ));
+                    lines.push(labeled(
+                        "wall:",
+                        en.wall_detail(),
+                        Style::default().fg(Color::Gray),
+                    ));
+                }
+                None => {
+                    lines.push(labeled(
+                        "enrich:",
+                        "(unavailable)",
+                        Style::default().fg(Color::Yellow),
+                    ));
+                }
+            }
         }
         None => {
             lines.push(labeled(
@@ -376,12 +417,26 @@ mod tests {
                 http_status: 200,
             }),
             github_delivery_warn: None,
+            enrich: Some(crate::status::EnrichStatusSnapshot {
+                pending: 171,
+                in_flight: 0,
+                ok: 85,
+                failed: 1,
+                skip: 1,
+                none: 37,
+                queue_remaining: 209,
+                next_enrich_after: Some("2026-07-29T05:22:35+02:00".into()),
+                wall_streak: Some(0),
+                last_wall_source_id: None,
+                enrich_pid: Some(2666262),
+                enrich_running: true,
+            }),
         }
     }
 
     #[test]
     fn render_shows_ok_and_providers() {
-        let backend = TestBackend::new(80, 28);
+        let backend = TestBackend::new(80, 32);
         let mut terminal = Terminal::new(backend).expect("terminal");
         let model = StatusModel::new(
             "http://127.0.0.1:4700/health",
@@ -407,6 +462,12 @@ mod tests {
         assert!(flat.contains("ready"), "buffer missing webhook detail");
         assert!(flat.contains("delivery"), "buffer missing delivery");
         assert!(flat.contains("ping"), "buffer missing last delivery event");
+        assert!(flat.contains("enrich"), "buffer missing enrich");
+        assert!(
+            flat.contains("remaining=209"),
+            "buffer missing queue: {flat}"
+        );
+        assert!(flat.contains("wall"), "buffer missing wall");
         assert!(
             !flat.contains("showcase"),
             "footer must not say showcase: {flat}"
@@ -442,7 +503,7 @@ mod tests {
 
     #[test]
     fn render_warn_delivery() {
-        let backend = TestBackend::new(80, 28);
+        let backend = TestBackend::new(80, 32);
         let mut terminal = Terminal::new(backend).expect("terminal");
         let mut runtime = sample_runtime();
         runtime.github_delivery_warn = Some("HMAC reject".into());
