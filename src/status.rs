@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Interchouette-ITC
+// SPDX-License-Identifier: BUSL-1.1
+
 //! Runtime status probe (`GET /status`) for providers + routes + webhook wake.
 
 use serde::Deserialize;
