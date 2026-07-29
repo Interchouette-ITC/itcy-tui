@@ -21,7 +21,7 @@ pub struct BatWakeSnapshot {
     pub detail: String,
 }
 
-/// Last GitHub delivery that reached ITCy.
+/// Last GitHub delivery that reached `ITCy`.
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 pub struct GithubDeliverySnapshot {
     pub at_unix: i64,
@@ -84,7 +84,7 @@ fn default_route_empty() -> String {
 impl EnrichStatusSnapshot {
     /// Short enrich status label for the live pane.
     #[must_use]
-    pub fn enrich_label(&self) -> &'static str {
+    pub const fn enrich_label(&self) -> &'static str {
         if self.enrich_running {
             "running"
         } else if self.queue_remaining == 0 {
@@ -94,7 +94,7 @@ impl EnrichStatusSnapshot {
         }
     }
 
-    /// Counts line: remaining + ok/pending/failed/none/in_flight/skip.
+    /// Counts line: remaining + `ok` / `pending` / `failed` / `none` / `in_flight` / `skip`.
     #[must_use]
     pub fn enrich_detail(&self) -> String {
         format!(
@@ -119,17 +119,16 @@ impl EnrichStatusSnapshot {
     pub fn wall_detail(&self) -> String {
         let streak = self
             .wall_streak
-            .map(|n| n.to_string())
-            .unwrap_or_else(|| "-".into());
+            .map_or_else(|| "-".into(), |n| n.to_string());
         let pid = match self.enrich_pid {
             Some(p) if self.enrich_running => format!("{p} alive"),
             Some(p) => format!("{p} dead"),
             None => "no pid file".into(),
         };
-        match self.last_wall_source_id {
-            Some(id) => format!("streak={streak} · pid {pid} · last_wall={id}"),
-            None => format!("streak={streak} · pid {pid}"),
-        }
+        self.last_wall_source_id.map_or_else(
+            || format!("streak={streak} · pid {pid}"),
+            |id| format!("streak={streak} · pid {pid} · last_wall={id}"),
+        )
     }
 }
 
@@ -144,7 +143,7 @@ impl RuntimeStatus {
     }
 
     #[must_use]
-    pub fn webhook_label(&self) -> &'static str {
+    pub const fn webhook_label(&self) -> &'static str {
         if self.github_webhook_configured {
             "ok"
         } else {
@@ -169,9 +168,9 @@ impl RuntimeStatus {
 
     #[must_use]
     pub fn wake_summary(&self) -> String {
-        match &self.last_bat_wake {
-            None => "never".into(),
-            Some(w) => {
+        self.last_bat_wake.as_ref().map_or_else(
+            || "never".into(),
+            |w| {
                 let pr = if w.pr_number == 0 {
                     "-".into()
                 } else {
@@ -188,8 +187,8 @@ impl RuntimeStatus {
                     action = w.action,
                     detail = w.detail
                 )
-            }
-        }
+            },
+        )
     }
 
     /// `ok` when no warn and last delivery outcome is ok/ignored (or never).
@@ -208,17 +207,17 @@ impl RuntimeStatus {
     /// Short last-delivery line for the TUI.
     #[must_use]
     pub fn delivery_detail(&self) -> String {
-        match &self.last_github_delivery {
-            None => "no delivery yet".into(),
-            Some(d) => {
+        self.last_github_delivery.as_ref().map_or_else(
+            || "no delivery yet".into(),
+            |d| {
                 let event = if d.event.is_empty() {
                     "-"
                 } else {
                     d.event.as_str()
                 };
                 format!("{event} {} · {}", d.http_status, d.outcome)
-            }
-        }
+            },
+        )
     }
 
     /// Warn line text, if any.
@@ -229,6 +228,7 @@ impl RuntimeStatus {
 }
 
 /// Fetches `/status`. Network / parse errors return `None`.
+#[must_use]
 pub fn fetch_status(url: &str) -> Option<RuntimeStatus> {
     let client = reqwest::blocking::Client::builder()
         .timeout(Duration::from_secs(2))
@@ -274,7 +274,7 @@ mod tests {
             next_enrich_after: Some("2026-07-29T05:22:35+02:00".into()),
             wall_streak: Some(0),
             last_wall_source_id: None,
-            enrich_pid: Some(2666262),
+            enrich_pid: Some(2_666_262),
             enrich_running: true,
         }
     }
