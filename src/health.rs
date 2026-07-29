@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Interchouette-ITC
+// SPDX-License-Identifier: BUSL-1.1
+
 //! Health probe against the ITCy always-on `/health` endpoint.
 
 use std::time::Duration;

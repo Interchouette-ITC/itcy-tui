@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Interchouette-ITC
+// SPDX-License-Identifier: BUSL-1.1
+
 //! Ratatui widgets for the ITCy status pane.
 
 use crate::commands::SLASH_COMMANDS;
