@@ -1,8 +1,9 @@
-.PHONY: lint test run build check-license-headers apply-license-headers
+.PHONY: lint test run build clean check-license-headers apply-license-headers
 
 lint: check-license-headers
 	cargo fmt --check
-	cargo clippy --all-targets -- -D warnings
+	cargo clippy --all-targets -- \
+		-D warnings -D clippy::all -D clippy::pedantic -D clippy::nursery
 
 check-license-headers:
 	node scripts/check-license-headers.mjs
@@ -19,3 +20,6 @@ run:
 
 build:
 	cargo build --release
+
+clean:
+	env -u CARGO_TARGET_DIR cargo clean

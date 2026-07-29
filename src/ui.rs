@@ -1,11 +1,11 @@
 // Copyright (c) 2026 Interchouette-ITC
 // SPDX-License-Identifier: BUSL-1.1
 
-//! Ratatui widgets for the ITCy status pane.
+//! Ratatui widgets for the `ITCy` status pane.
 
 use crate::commands::SLASH_COMMANDS;
 use crate::health::HealthStatus;
-use crate::status::RuntimeStatus;
+use crate::status::{EnrichStatusSnapshot, RuntimeStatus};
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
@@ -56,7 +56,7 @@ impl StatusModel {
     }
 
     /// Toggle live status ↔ slash-command reference.
-    pub fn toggle_commands(&mut self) {
+    pub const fn toggle_commands(&mut self) {
         self.view = match self.view {
             ViewMode::Live => ViewMode::Commands,
             ViewMode::Commands => ViewMode::Live,
@@ -125,7 +125,17 @@ fn labeled(label: &str, value: impl AsRef<str>, value_style: Style) -> Line<'sta
     ])
 }
 
-fn draw_body(frame: &mut Frame, area: Rect, model: &StatusModel) {
+fn bold_status_line(label: &str, value: &str, color: Color) -> Line<'static> {
+    Line::from(vec![
+        Span::styled(format!("{label:<11}"), LABEL),
+        Span::styled(
+            value.to_string(),
+            Style::default().fg(color).add_modifier(Modifier::BOLD),
+        ),
+    ])
+}
+
+fn health_lines(model: &StatusModel) -> Vec<Line<'static>> {
     let (health_color, detail, detail_style) = match &model.health {
         HealthStatus::Ok => (
             Color::LightGreen,
@@ -138,157 +148,157 @@ fn draw_body(frame: &mut Frame, area: Rect, model: &StatusModel) {
             Style::default().fg(Color::Red),
         ),
     };
-
-    let mut lines = vec![
-        Line::from(vec![
-            Span::styled(format!("{:<11}", "health:"), LABEL),
-            Span::styled(
-                model.health.label().to_string(),
-                Style::default()
-                    .fg(health_color)
-                    .add_modifier(Modifier::BOLD),
-            ),
-        ]),
+    vec![
+        bold_status_line("health:", model.health.label(), health_color),
         labeled("url:", &model.health_url, ACCENT),
         labeled("detail:", &detail, detail_style),
         Line::from(""),
+    ]
+}
+
+fn route_lines(rt: &RuntimeStatus) -> Vec<Line<'static>> {
+    vec![
+        labeled(
+            "providers:",
+            rt.providers_csv(),
+            Style::default()
+                .fg(Color::Magenta)
+                .add_modifier(Modifier::BOLD),
+        ),
+        labeled(
+            "freeform:",
+            format!("head={} | {}", rt.freeform_route_head, rt.freeform_route),
+            Style::default().fg(Color::LightBlue),
+        ),
+        labeled(
+            "load:",
+            format!("head={} | {}", rt.load_route_head, rt.load_route),
+            Style::default().fg(Color::LightCyan),
+        ),
+        labeled(
+            "draft:",
+            format!("head={} | {}", rt.draft_route_head, rt.draft_route),
+            Style::default().fg(Color::LightBlue),
+        ),
+        Line::from(""),
+    ]
+}
+
+fn webhook_lines(model: &StatusModel, rt: &RuntimeStatus) -> Vec<Line<'static>> {
+    let webhook_color = if rt.github_webhook_configured {
+        Color::LightGreen
+    } else {
+        Color::LightYellow
+    };
+    let webhook_detail = rt.webhook_detail();
+    let webhook_detail_style = if rt.github_webhook_configured {
+        Style::default().fg(Color::Green)
+    } else {
+        Style::default().fg(Color::Yellow)
+    };
+    vec![
+        bold_status_line("webhook:", rt.webhook_label(), webhook_color),
+        labeled("url:", &model.webhook_url, ACCENT),
+        labeled("detail:", &webhook_detail, webhook_detail_style),
+    ]
+}
+
+fn delivery_lines(rt: &RuntimeStatus) -> Vec<Line<'static>> {
+    let delivery_label = rt.delivery_label();
+    let delivery_color = match delivery_label {
+        "ok" => Color::LightGreen,
+        "WARN" => Color::LightRed,
+        _ => Color::LightYellow,
+    };
+    let mut lines = vec![
+        bold_status_line("delivery:", delivery_label, delivery_color),
+        labeled(
+            "last:",
+            rt.delivery_detail(),
+            Style::default().fg(Color::Gray),
+        ),
     ];
+    if let Some(warn) = rt.delivery_warn_line() {
+        lines.push(labeled(
+            "warn:",
+            warn,
+            Style::default().fg(Color::LightYellow),
+        ));
+    }
+    lines.push(Line::from(""));
+    lines
+}
 
-    match &model.runtime {
-        Some(rt) => {
-            lines.push(labeled(
-                "providers:",
-                rt.providers_csv(),
-                Style::default()
-                    .fg(Color::Magenta)
-                    .add_modifier(Modifier::BOLD),
-            ));
-            lines.push(labeled(
-                "freeform:",
-                format!("head={} | {}", rt.freeform_route_head, rt.freeform_route),
-                Style::default().fg(Color::LightBlue),
-            ));
-            lines.push(labeled(
-                "load:",
-                format!("head={} | {}", rt.load_route_head, rt.load_route),
-                Style::default().fg(Color::LightCyan),
-            ));
-            lines.push(labeled(
-                "draft:",
-                format!("head={} | {}", rt.draft_route_head, rt.draft_route),
-                Style::default().fg(Color::LightBlue),
-            ));
-            lines.push(Line::from(""));
-            let webhook_color = if rt.github_webhook_configured {
-                Color::LightGreen
-            } else {
-                Color::LightYellow
-            };
-            let webhook_detail = rt.webhook_detail();
-            let webhook_detail_style = if rt.github_webhook_configured {
-                Style::default().fg(Color::Green)
-            } else {
-                Style::default().fg(Color::Yellow)
-            };
-            lines.push(Line::from(vec![
-                Span::styled(format!("{:<11}", "webhook:"), LABEL),
-                Span::styled(
-                    rt.webhook_label().to_string(),
-                    Style::default()
-                        .fg(webhook_color)
-                        .add_modifier(Modifier::BOLD),
-                ),
-            ]));
-            lines.push(labeled("url:", &model.webhook_url, ACCENT));
-            lines.push(labeled("detail:", &webhook_detail, webhook_detail_style));
-
-            let delivery_label = rt.delivery_label();
-            let delivery_color = match delivery_label {
-                "ok" => Color::LightGreen,
-                "WARN" => Color::LightRed,
+fn enrich_lines(enrich: Option<&EnrichStatusSnapshot>) -> Vec<Line<'static>> {
+    enrich.map_or_else(
+        || {
+            vec![labeled(
+                "enrich:",
+                "(unavailable)",
+                Style::default().fg(Color::Yellow),
+            )]
+        },
+        |en| {
+            let enrich_color = match en.enrich_label() {
+                "running" => Color::LightGreen,
+                "idle" => Color::Gray,
                 _ => Color::LightYellow,
             };
-            lines.push(Line::from(vec![
-                Span::styled(format!("{:<11}", "delivery:"), LABEL),
-                Span::styled(
-                    delivery_label.to_string(),
-                    Style::default()
-                        .fg(delivery_color)
-                        .add_modifier(Modifier::BOLD),
+            vec![
+                bold_status_line("enrich:", en.enrich_label(), enrich_color),
+                labeled(
+                    "counts:",
+                    en.enrich_detail(),
+                    Style::default().fg(Color::LightCyan),
                 ),
-            ]));
-            lines.push(labeled(
-                "last:",
-                rt.delivery_detail(),
-                Style::default().fg(Color::Gray),
-            ));
-            if let Some(warn) = rt.delivery_warn_line() {
-                lines.push(labeled(
-                    "warn:",
-                    warn,
-                    Style::default().fg(Color::LightYellow),
-                ));
-            }
-            lines.push(Line::from(""));
-            match &rt.enrich {
-                Some(en) => {
-                    let enrich_color = match en.enrich_label() {
-                        "running" => Color::LightGreen,
-                        "idle" => Color::Gray,
-                        _ => Color::LightYellow,
-                    };
-                    lines.push(Line::from(vec![
-                        Span::styled(format!("{:<11}", "enrich:"), LABEL),
-                        Span::styled(
-                            en.enrich_label().to_string(),
-                            Style::default()
-                                .fg(enrich_color)
-                                .add_modifier(Modifier::BOLD),
-                        ),
-                    ]));
-                    lines.push(labeled(
-                        "counts:",
-                        en.enrich_detail(),
-                        Style::default().fg(Color::LightCyan),
-                    ));
-                    lines.push(labeled(
-                        "queue:",
-                        en.queue_detail(),
-                        Style::default().fg(Color::LightBlue),
-                    ));
-                    lines.push(labeled(
-                        "wall:",
-                        en.wall_detail(),
-                        Style::default().fg(Color::Gray),
-                    ));
-                }
-                None => {
-                    lines.push(labeled(
-                        "enrich:",
-                        "(unavailable)",
-                        Style::default().fg(Color::Yellow),
-                    ));
-                }
-            }
-        }
-        None => {
-            lines.push(labeled(
+                labeled(
+                    "queue:",
+                    en.queue_detail(),
+                    Style::default().fg(Color::LightBlue),
+                ),
+                labeled("wall:", en.wall_detail(), Style::default().fg(Color::Gray)),
+            ]
+        },
+    )
+}
+
+fn runtime_lines(model: &StatusModel) -> Vec<Line<'static>> {
+    model.runtime.as_ref().map_or_else(
+        || {
+            vec![labeled(
                 "routes:",
                 format!("(unavailable - GET {})", model.status_url),
                 Style::default().fg(Color::Yellow),
-            ));
-        }
-    }
+            )]
+        },
+        |rt| {
+            let mut lines = route_lines(rt);
+            lines.extend(webhook_lines(model, rt));
+            lines.extend(delivery_lines(rt));
+            lines.extend(enrich_lines(rt.enrich.as_ref()));
+            lines
+        },
+    )
+}
 
-    lines.push(Line::from(""));
-    lines.push(keys_line());
-    lines.push(Line::from(vec![
-        Span::styled("logs:  ", LABEL),
-        Span::styled(
-            "product screen window `itcy` (RUST_LOG) - not this TUI",
-            MUTED,
-        ),
-    ]));
+fn body_tail_lines() -> Vec<Line<'static>> {
+    vec![
+        Line::from(""),
+        keys_line(),
+        Line::from(vec![
+            Span::styled("logs:  ", LABEL),
+            Span::styled(
+                "product screen window `itcy` (RUST_LOG) - not this TUI",
+                MUTED,
+            ),
+        ]),
+    ]
+}
+
+fn draw_body(frame: &mut Frame, area: Rect, model: &StatusModel) {
+    let mut lines = health_lines(model);
+    lines.extend(runtime_lines(model));
+    lines.extend(body_tail_lines());
 
     let body = Paragraph::new(lines).block(
         Block::default()
@@ -431,7 +441,7 @@ mod tests {
                 next_enrich_after: Some("2026-07-29T05:22:35+02:00".into()),
                 wall_streak: Some(0),
                 last_wall_source_id: None,
-                enrich_pid: Some(2666262),
+                enrich_pid: Some(2_666_262),
                 enrich_running: true,
             }),
         }
