@@ -28,4 +28,4 @@ Health, model routes, GitHub webhook delivery, enrich-queue progress, and a shor
 
 ## License
 
-UNLICENSED (Interchouette ITC).
+BUSL-1.1 (Interchouette-ITC). See [LICENSE](LICENSE).

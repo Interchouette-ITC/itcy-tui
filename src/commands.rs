@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Interchouette-ITC
+// SPDX-License-Identifier: BUSL-1.1
+
 //! Static slash-command catalog for the TUI reference pane.
 //!
 //! Keep in sync with product `help_text()` in `backend/crates/itcy/src/slack/commands.rs`.
