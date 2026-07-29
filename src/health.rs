@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Interchouette-ITC
 // SPDX-License-Identifier: BUSL-1.1
 
-//! Health probe against the ITCy always-on `/health` endpoint.
+//! Health probe against the `ITCy` always-on `/health` endpoint.
 
 use std::time::Duration;
 
@@ -15,11 +15,13 @@ pub enum HealthStatus {
 }
 
 impl HealthStatus {
-    pub fn is_ok(&self) -> bool {
+    #[must_use]
+    pub const fn is_ok(&self) -> bool {
         matches!(self, Self::Ok)
     }
 
-    pub fn label(&self) -> &str {
+    #[must_use]
+    pub const fn label(&self) -> &str {
         match self {
             Self::Ok => "ok",
             Self::Down { .. } => "DOWN",
@@ -28,6 +30,7 @@ impl HealthStatus {
 }
 
 /// Maps an HTTP status + body to a health status (product returns plain `ok`).
+#[must_use]
 pub fn interpret_health(status: u16, body: &str) -> HealthStatus {
     if status == 200 && body.trim() == "ok" {
         HealthStatus::Ok
@@ -39,6 +42,7 @@ pub fn interpret_health(status: u16, body: &str) -> HealthStatus {
 }
 
 /// GETs `url` and interprets the response. Network errors become `Down`.
+#[must_use]
 pub fn fetch_health(url: &str) -> HealthStatus {
     let client = match reqwest::blocking::Client::builder()
         .timeout(Duration::from_secs(2))

@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Interchouette-ITC
 // SPDX-License-Identifier: BUSL-1.1
 
-//! ITCy ratatui status library.
+//! `ITCy` ratatui status library.
 
 pub mod commands;
 pub mod health;

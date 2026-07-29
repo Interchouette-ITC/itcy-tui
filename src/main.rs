@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Interchouette-ITC
 // SPDX-License-Identifier: BUSL-1.1
 
-//! ITCy ratatui status binary.
+//! `ITCy` ratatui status binary.
 
 use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
 use crossterm::terminal::{
@@ -47,7 +47,7 @@ fn main() -> io::Result<()> {
 
     let mut model = StatusModel::new(health_url.clone(), status_url.clone(), health, runtime);
     let poll = Duration::from_secs(1);
-    let mut last = Instant::now() - poll;
+    let mut last = Instant::now().checked_sub(poll).unwrap();
 
     let result = run_loop(
         &mut terminal,
@@ -92,7 +92,7 @@ fn run_loop(
 
         if event::poll(Duration::from_millis(200))? {
             if let Event::Key(key) = event::read()? {
-                if key.kind == KeyEventKind::Press && is_quit_key(&key.code, key.modifiers) {
+                if key.kind == KeyEventKind::Press && is_quit_key(key.code, key.modifiers) {
                     break;
                 }
                 if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('r') {
@@ -108,9 +108,9 @@ fn run_loop(
     Ok(())
 }
 
-fn is_quit_key(code: &KeyCode, modifiers: KeyModifiers) -> bool {
+fn is_quit_key(code: KeyCode, modifiers: KeyModifiers) -> bool {
     matches!(code, KeyCode::Char('q') | KeyCode::Esc)
-        || (*code == KeyCode::Char('c') && modifiers.contains(KeyModifiers::CONTROL))
+        || (code == KeyCode::Char('c') && modifiers.contains(KeyModifiers::CONTROL))
 }
 
 /// GNU screen sets `STY`. Its default config often ignores the xterm alt buffer,
