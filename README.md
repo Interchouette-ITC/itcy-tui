@@ -2,7 +2,7 @@
 
 Terminal status UI for **[ITCy](https://github.com/Interchouette-ITC/itcy)**, built with [ratatui](https://ratatui.rs/).
 
-ITCy is Interchouette ITC’s LinkedIn operator (Slack runtime, drafts, publications BAT, corpus tools). This repo is only the status pane that probes the always-on binary.
+ITCy is Interchouette ITC's LinkedIn operator (Slack runtime, drafts, publications BAT, corpus tools). This repo is only the status pane that probes the always-on binary.
 
 | | |
 | --- | --- |
