@@ -18,7 +18,7 @@ pub struct BatWakeSnapshot {
     pub detail: String,
 }
 
-/// Last GitHub delivery that reached ITCy (S4w).
+/// Last GitHub delivery that reached ITCy.
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 pub struct GithubDeliverySnapshot {
     pub at_unix: i64,
@@ -50,7 +50,7 @@ pub struct EnrichStatusSnapshot {
     pub enrich_running: bool,
 }
 
-/// Provider pool + failover routes + S4h/S4w webhook fields from the always-on binary.
+/// Provider pool + failover routes + webhook fields from the always-on binary.
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 pub struct RuntimeStatus {
     pub providers: Vec<String>,

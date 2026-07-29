@@ -9,7 +9,7 @@ pub struct SlashCommand {
     pub usage: &'static str,
     /// Short summary.
     pub summary: &'static str,
-    /// True when the product still stubs the command (S6/S8).
+    /// True when the product still stubs the command.
     pub stub: bool,
 }
 
