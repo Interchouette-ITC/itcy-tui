@@ -8,6 +8,20 @@ use std::time::Duration;
 /// Default product health URL (see itcy `backend/config.toml`).
 pub const DEFAULT_HEALTH_URL: &str = "http://127.0.0.1:4700/health";
 
+/// HTTP client timeout for `/health` and `/status` probes.
+pub const PROBE_TIMEOUT: Duration = Duration::from_secs(2);
+
+/// Replaces a trailing `/health` path with `new_path` (e.g. `/status`, `/github/webhook_ITCy`).
+///
+/// When `health_url` does not end with `/health`, returns `None` so the caller can fall back.
+#[must_use]
+pub fn replace_health_path(health_url: &str, new_path: &str) -> Option<String> {
+    health_url
+        .ends_with("/health")
+        .then(|| health_url.replacen("/health", new_path, 1))
+}
+
+/// Result of probing the product `/health` endpoint.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HealthStatus {
     Ok,
@@ -15,11 +29,7 @@ pub enum HealthStatus {
 }
 
 impl HealthStatus {
-    #[must_use]
-    pub const fn is_ok(&self) -> bool {
-        matches!(self, Self::Ok)
-    }
-
+    /// Short label for the status pane (`ok` or `DOWN`).
     #[must_use]
     pub const fn label(&self) -> &str {
         match self {
@@ -45,7 +55,7 @@ pub fn interpret_health(status: u16, body: &str) -> HealthStatus {
 #[must_use]
 pub fn fetch_health(url: &str) -> HealthStatus {
     let client = match reqwest::blocking::Client::builder()
-        .timeout(Duration::from_secs(2))
+        .timeout(PROBE_TIMEOUT)
         .build()
     {
         Ok(c) => c,
@@ -88,5 +98,17 @@ mod tests {
             interpret_health(200, "ready"),
             HealthStatus::Down { .. }
         ));
+    }
+
+    #[test]
+    fn replace_health_path_swaps_suffix() {
+        assert_eq!(
+            replace_health_path(DEFAULT_HEALTH_URL, "/status").as_deref(),
+            Some("http://127.0.0.1:4700/status")
+        );
+        assert_eq!(
+            replace_health_path("http://127.0.0.1:4700/", "/status"),
+            None
+        );
     }
 }

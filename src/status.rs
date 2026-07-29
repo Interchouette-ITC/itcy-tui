@@ -3,13 +3,13 @@
 
 //! Runtime status probe (`GET /status`) for providers + routes + webhook wake.
 
+use crate::health::PROBE_TIMEOUT;
 use serde::Deserialize;
-use std::time::Duration;
 
 /// Default product status URL.
 pub const DEFAULT_STATUS_URL: &str = "http://127.0.0.1:4700/status";
 
-/// Last BAT / webhook wake snapshot from the product binary.
+/// Last publications-approve / webhook wake fields from `GET /status`.
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 pub struct BatWakeSnapshot {
     pub at_unix: i64,
@@ -133,6 +133,7 @@ impl EnrichStatusSnapshot {
 }
 
 impl RuntimeStatus {
+    /// Comma-separated provider ids, or `(empty)`.
     #[must_use]
     pub fn providers_csv(&self) -> String {
         if self.providers.is_empty() {
@@ -142,6 +143,7 @@ impl RuntimeStatus {
         }
     }
 
+    /// Short webhook config label (`ok` or `not configured`).
     #[must_use]
     pub const fn webhook_label(&self) -> &'static str {
         if self.github_webhook_configured {
@@ -166,6 +168,7 @@ impl RuntimeStatus {
         }
     }
 
+    /// Compact last-wake line (`never` or action/pr/reviewer/merged/detail).
     #[must_use]
     pub fn wake_summary(&self) -> String {
         self.last_bat_wake.as_ref().map_or_else(
@@ -231,7 +234,7 @@ impl RuntimeStatus {
 #[must_use]
 pub fn fetch_status(url: &str) -> Option<RuntimeStatus> {
     let client = reqwest::blocking::Client::builder()
-        .timeout(Duration::from_secs(2))
+        .timeout(PROBE_TIMEOUT)
         .build()
         .ok()?;
     let resp = client.get(url).send().ok()?;
@@ -239,6 +242,26 @@ pub fn fetch_status(url: &str) -> Option<RuntimeStatus> {
         return None;
     }
     resp.json().ok()
+}
+
+/// Shared enrich snapshot for unit tests (ui + status).
+#[cfg(test)]
+#[must_use]
+pub(crate) fn sample_enrich() -> EnrichStatusSnapshot {
+    EnrichStatusSnapshot {
+        pending: 171,
+        in_flight: 0,
+        ok: 85,
+        failed: 1,
+        skip: 1,
+        none: 37,
+        queue_remaining: 209,
+        next_enrich_after: Some("2026-07-29T05:22:35+02:00".into()),
+        wall_streak: Some(0),
+        last_wall_source_id: None,
+        enrich_pid: Some(2_666_262),
+        enrich_running: true,
+    }
 }
 
 #[cfg(test)]
@@ -263,20 +286,7 @@ mod tests {
     }
 
     fn sample_enrich() -> EnrichStatusSnapshot {
-        EnrichStatusSnapshot {
-            pending: 171,
-            in_flight: 0,
-            ok: 85,
-            failed: 1,
-            skip: 1,
-            none: 37,
-            queue_remaining: 209,
-            next_enrich_after: Some("2026-07-29T05:22:35+02:00".into()),
-            wall_streak: Some(0),
-            last_wall_source_id: None,
-            enrich_pid: Some(2_666_262),
-            enrich_running: true,
-        }
+        super::sample_enrich()
     }
 
     #[test]
