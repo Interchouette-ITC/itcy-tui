@@ -4,8 +4,13 @@
 //! Ratatui widgets for the `ITCy` status pane.
 
 use crate::commands::SLASH_COMMANDS;
-use crate::health::HealthStatus;
+use crate::health::{replace_health_path, HealthStatus};
 use crate::status::{EnrichStatusSnapshot, RuntimeStatus};
+
+#[cfg(test)]
+use crate::health::DEFAULT_HEALTH_URL;
+#[cfg(test)]
+use crate::status::DEFAULT_STATUS_URL;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
@@ -24,6 +29,7 @@ pub enum ViewMode {
     Commands,
 }
 
+/// Pane model: probe URLs, last health/runtime snapshots, poll count, active view.
 #[derive(Debug, Clone)]
 pub struct StatusModel {
     pub health_url: String,
@@ -36,6 +42,7 @@ pub struct StatusModel {
 }
 
 impl StatusModel {
+    /// Builds a model from health/status URLs and initial snapshots (`webhook_url` derived).
     pub fn new(
         health_url: impl Into<String>,
         status_url: impl Into<String>,
@@ -55,7 +62,7 @@ impl StatusModel {
         }
     }
 
-    /// Toggle live status ↔ slash-command reference.
+    /// Switch between live status and slash-command reference panes.
     pub const fn toggle_commands(&mut self) {
         self.view = match self.view {
             ViewMode::Live => ViewMode::Commands,
@@ -66,11 +73,8 @@ impl StatusModel {
 
 /// Same host as `/health`, path `POST /github/webhook_ITCy`.
 fn hooks_url_from_health(health_url: &str) -> String {
-    if health_url.ends_with("/health") {
-        health_url.replacen("/health", "/github/webhook_ITCy", 1)
-    } else {
-        format!("{}/github/webhook_ITCy", health_url.trim_end_matches('/'))
-    }
+    replace_health_path(health_url, "/github/webhook_ITCy")
+        .unwrap_or_else(|| format!("{}/github/webhook_ITCy", health_url.trim_end_matches('/')))
 }
 
 /// Draws the status pane into `frame`.
@@ -287,10 +291,7 @@ fn body_tail_lines() -> Vec<Line<'static>> {
         keys_line(),
         Line::from(vec![
             Span::styled("logs:  ", LABEL),
-            Span::styled(
-                "product screen window `itcy` (RUST_LOG) - not this TUI",
-                MUTED,
-            ),
+            Span::styled("product binary RUST_LOG stream - not this TUI", MUTED),
         ]),
     ]
 }
@@ -397,8 +398,6 @@ fn draw_footer(frame: &mut Frame, area: Rect, model: &StatusModel) {
                 .add_modifier(Modifier::BOLD),
         ),
         Span::styled("   |   ", MUTED),
-        Span::styled("Written by AI", Style::default().fg(Color::Yellow)),
-        Span::styled(" - ", MUTED),
         Span::styled("ITCy", ACCENT.add_modifier(Modifier::BOLD)),
         Span::styled(" - ratatui", MUTED),
     ]));
@@ -430,20 +429,7 @@ mod tests {
                 http_status: 200,
             }),
             github_delivery_warn: None,
-            enrich: Some(crate::status::EnrichStatusSnapshot {
-                pending: 171,
-                in_flight: 0,
-                ok: 85,
-                failed: 1,
-                skip: 1,
-                none: 37,
-                queue_remaining: 209,
-                next_enrich_after: Some("2026-07-29T05:22:35+02:00".into()),
-                wall_streak: Some(0),
-                last_wall_source_id: None,
-                enrich_pid: Some(2_666_262),
-                enrich_running: true,
-            }),
+            enrich: Some(crate::status::sample_enrich()),
         }
     }
 
@@ -452,8 +438,8 @@ mod tests {
         let backend = TestBackend::new(80, 32);
         let mut terminal = Terminal::new(backend).expect("terminal");
         let model = StatusModel::new(
-            "http://127.0.0.1:4700/health",
-            "http://127.0.0.1:4700/status",
+            DEFAULT_HEALTH_URL,
+            DEFAULT_STATUS_URL,
             HealthStatus::Ok,
             Some(sample_runtime()),
         );
@@ -492,8 +478,8 @@ mod tests {
         let backend = TestBackend::new(100, 24);
         let mut terminal = Terminal::new(backend).expect("terminal");
         let mut model = StatusModel::new(
-            "http://127.0.0.1:4700/health",
-            "http://127.0.0.1:4700/status",
+            DEFAULT_HEALTH_URL,
+            DEFAULT_STATUS_URL,
             HealthStatus::Ok,
             None,
         );
@@ -508,8 +494,8 @@ mod tests {
             .collect();
         assert!(flat.contains("/ingest"), "missing /ingest: {flat}");
         assert!(
-            flat.contains("external url"),
-            "missing external url usage: {flat}"
+            flat.contains("/ingest <url>"),
+            "missing ingest usage: {flat}"
         );
         assert!(flat.contains("(stub)"), "missing stub marker: {flat}");
     }
@@ -528,8 +514,8 @@ mod tests {
             http_status: 401,
         });
         let model = StatusModel::new(
-            "http://127.0.0.1:4700/health",
-            "http://127.0.0.1:4700/status",
+            DEFAULT_HEALTH_URL,
+            DEFAULT_STATUS_URL,
             HealthStatus::Ok,
             Some(runtime),
         );

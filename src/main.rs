@@ -8,7 +8,7 @@ use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen,
 };
 use crossterm::{cursor, ExecutableCommand};
-use itcy_tui::health::{fetch_health, DEFAULT_HEALTH_URL};
+use itcy_tui::health::{fetch_health, replace_health_path, DEFAULT_HEALTH_URL};
 use itcy_tui::status::{fetch_status, DEFAULT_STATUS_URL};
 use itcy_tui::ui::{draw, StatusModel};
 use ratatui::backend::CrosstermBackend;
@@ -24,11 +24,8 @@ static STOP: AtomicBool = AtomicBool::new(false);
 fn main() -> io::Result<()> {
     let health_url = env::var("ITCY_HEALTH_URL").unwrap_or_else(|_| DEFAULT_HEALTH_URL.to_string());
     let status_url = env::var("ITCY_STATUS_URL").unwrap_or_else(|_| {
-        if health_url.ends_with("/health") {
-            health_url.replacen("/health", "/status", 1)
-        } else {
-            DEFAULT_STATUS_URL.to_string()
-        }
+        replace_health_path(&health_url, "/status")
+            .unwrap_or_else(|| DEFAULT_STATUS_URL.to_string())
     });
 
     // Probe before taking over the terminal so HTTP noise never paints into the UI.
@@ -119,7 +116,7 @@ fn inside_gnu_screen() -> bool {
     env::var_os("STY").is_some()
 }
 
-/// Nuclear tty reset: works on main buffer (screen) and after leaving alt screen.
+/// Reset SGR, cursor, and clear both alt and main tty buffers.
 fn hard_reset_tty() {
     let mut out = stdout();
     let _ = write!(
