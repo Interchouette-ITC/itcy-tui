@@ -14,9 +14,9 @@ apply-license-headers:
 test:
 	cargo test
 
-# One shell: build then exec binary so make never prints on top of the TUI frame.
+# One shell: build then exec so cargo status lines finish before the TUI frame.
 run:
-	@cargo build -q --release && exec ./target/release/itcy-tui
+	@cargo build --release && exec ./target/release/itcy-tui
 
 build:
 	cargo build --release
