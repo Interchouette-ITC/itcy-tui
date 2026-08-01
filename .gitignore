@@ -24,9 +24,5 @@ target
 # Added by cargo
 
 /target
-
-# Interchouette worker token (symlink; never commit)
 .github_credentials
-
-# Product Cursor config lives in private Interchouette-ITC/itc-cursor (symlink)
 .cursor
