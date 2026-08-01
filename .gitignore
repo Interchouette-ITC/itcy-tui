@@ -24,7 +24,5 @@ target
 # Added by cargo
 
 /target
-
-# Interchouette worker token (symlink; never commit)
 .github_credentials
 .cursor
