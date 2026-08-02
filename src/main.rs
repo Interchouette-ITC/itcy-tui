@@ -8,7 +8,9 @@ use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen,
 };
 use crossterm::{cursor, ExecutableCommand};
-use itcy_tui::health::{fetch_health, replace_health_path, DEFAULT_HEALTH_URL};
+use itcy_tui::health::{
+    fetch_health, replace_health_path, DEFAULT_HEALTH_URL, DEFAULT_INGRESS_HEALTH_URL,
+};
 use itcy_tui::status::{fetch_status, DEFAULT_STATUS_URL};
 use itcy_tui::ui::{draw, StatusModel};
 use ratatui::backend::CrosstermBackend;
@@ -43,6 +45,7 @@ fn main() -> io::Result<()> {
     terminal.clear()?;
 
     let mut model = StatusModel::new(health_url.clone(), status_url.clone(), health, runtime);
+    model.ingress_health = fetch_health(DEFAULT_INGRESS_HEALTH_URL);
     let poll = Duration::from_secs(1);
     let mut last = Instant::now().checked_sub(poll).unwrap();
 
@@ -63,6 +66,7 @@ fn main() -> io::Result<()> {
 
 fn refresh(model: &mut StatusModel, health_url: &str, status_url: &str) {
     model.health = fetch_health(health_url);
+    model.ingress_health = fetch_health(DEFAULT_INGRESS_HEALTH_URL);
     model.runtime = fetch_status(status_url);
     model.ticks = model.ticks.saturating_add(1);
 }
