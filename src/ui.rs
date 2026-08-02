@@ -4,7 +4,7 @@
 //! Ratatui widgets for the `ITCy` status pane.
 
 use crate::commands::SLASH_COMMANDS;
-use crate::health::{replace_health_path, HealthStatus};
+use crate::health::{replace_health_path, HealthStatus, DEFAULT_INGRESS_HEALTH_URL};
 use crate::status::{EnrichStatusSnapshot, RuntimeStatus};
 
 #[cfg(test)]
@@ -35,7 +35,9 @@ pub struct StatusModel {
     pub health_url: String,
     pub status_url: String,
     pub webhook_url: String,
+    pub ingress_url: String,
     pub health: HealthStatus,
+    pub ingress_health: HealthStatus,
     pub runtime: Option<RuntimeStatus>,
     pub ticks: u64,
     pub view: ViewMode,
@@ -55,7 +57,11 @@ impl StatusModel {
             health_url,
             status_url: status_url.into(),
             webhook_url,
+            ingress_url: DEFAULT_INGRESS_HEALTH_URL.to_string(),
             health,
+            ingress_health: HealthStatus::Down {
+                reason: "not probed".into(),
+            },
             runtime,
             ticks: 0,
             view: ViewMode::Live,
@@ -71,10 +77,10 @@ impl StatusModel {
     }
 }
 
-/// Same host as `/health`, path `POST /github/webhook_ITCy`.
+/// Wake path on the product host (`POST /hooks/github`).
 fn hooks_url_from_health(health_url: &str) -> String {
-    replace_health_path(health_url, "/github/webhook_ITCy")
-        .unwrap_or_else(|| format!("{}/github/webhook_ITCy", health_url.trim_end_matches('/')))
+    replace_health_path(health_url, "/hooks/github")
+        .unwrap_or_else(|| format!("{}/hooks/github", health_url.trim_end_matches('/')))
 }
 
 /// Draws the status pane into `frame`.
@@ -152,10 +158,21 @@ fn health_lines(model: &StatusModel) -> Vec<Line<'static>> {
             Style::default().fg(Color::Red),
         ),
     };
+    let (ingress_color, ingress_detail) = match &model.ingress_health {
+        HealthStatus::Ok => (Color::LightGreen, "itc-hooks /health ok".to_string()),
+        HealthStatus::Down { reason } => (Color::LightRed, reason.clone()),
+    };
     vec![
         bold_status_line("health:", model.health.label(), health_color),
         labeled("url:", &model.health_url, ACCENT),
         labeled("detail:", &detail, detail_style),
+        bold_status_line("ingress:", model.ingress_health.label(), ingress_color),
+        labeled("url:", &model.ingress_url, ACCENT),
+        labeled(
+            "detail:",
+            &ingress_detail,
+            Style::default().fg(ingress_color),
+        ),
         Line::from(""),
     ]
 }
@@ -455,7 +472,7 @@ mod tests {
         assert!(flat.contains("ollama"), "buffer missing ollama");
         assert!(flat.contains("webhook"), "buffer missing webhook");
         assert!(
-            flat.contains("/github/webhook_ITCy"),
+            flat.contains("/hooks/github"),
             "buffer missing webhook url: {flat}"
         );
         assert!(flat.contains("ready"), "buffer missing webhook detail");
