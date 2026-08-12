@@ -5,7 +5,7 @@
 
 use crate::commands::SLASH_COMMANDS;
 use crate::health::{replace_health_path, HealthStatus, DEFAULT_INGRESS_HEALTH_URL};
-use crate::status::{EnrichStatusSnapshot, RuntimeStatus};
+use crate::status::{EnrichStatusSnapshot, RuntimeStatus, TorListenSnapshot};
 
 #[cfg(test)]
 use crate::health::DEFAULT_HEALTH_URL;
@@ -297,7 +297,37 @@ fn runtime_lines(model: &StatusModel) -> Vec<Line<'static>> {
             lines.extend(webhook_lines(model, rt));
             lines.extend(delivery_lines(rt));
             lines.extend(enrich_lines(rt.enrich.as_ref()));
+            lines.extend(tor_lines(rt.tor.as_ref()));
             lines
+        },
+    )
+}
+
+fn tor_lines(tor: Option<&TorListenSnapshot>) -> Vec<Line<'static>> {
+    tor.map_or_else(
+        || {
+            vec![labeled(
+                "tor:",
+                "(unavailable)",
+                Style::default().fg(Color::Yellow),
+            )]
+        },
+        |t| {
+            let color = if t.ok {
+                Color::LightGreen
+            } else {
+                Color::LightRed
+            };
+            let detail = if t.detail.is_empty() {
+                if t.ok {
+                    "ok".into()
+                } else {
+                    format!("socks={} control={}", t.socks_ok, t.control_ok)
+                }
+            } else {
+                t.detail.clone()
+            };
+            vec![bold_status_line("tor:", &detail, color)]
         },
     )
 }
@@ -447,6 +477,12 @@ mod tests {
             }),
             github_delivery_warn: None,
             enrich: Some(crate::status::sample_enrich()),
+            tor: Some(crate::status::TorListenSnapshot {
+                ok: true,
+                socks_ok: true,
+                control_ok: true,
+                detail: "ok".into(),
+            }),
         }
     }
 
