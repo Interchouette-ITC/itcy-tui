@@ -22,4 +22,4 @@ build:
 	cargo build --release
 
 clean:
-	env -u CARGO_TARGET_DIR cargo clean
+	cargo clean
