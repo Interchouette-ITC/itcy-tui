@@ -2,6 +2,7 @@
 name = "itcy-tui"
 version = "0.1.0"
 edition = "2021"
+authors = ["Interchouette <contact@interchouette.net>"]
 license = "BUSL-1.1"
 description = "ITCy ratatui status TUI"
 default-run = "itcy-tui"
