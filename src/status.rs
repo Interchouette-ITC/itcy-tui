@@ -75,6 +75,18 @@ pub struct RuntimeStatus {
     pub github_delivery_warn: Option<String>,
     #[serde(default)]
     pub enrich: Option<EnrichStatusSnapshot>,
+    #[serde(default)]
+    pub tor: Option<TorListenSnapshot>,
+}
+
+/// Tor SOCKS + control listen from product `/status`.
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+pub struct TorListenSnapshot {
+    pub ok: bool,
+    pub socks_ok: bool,
+    pub control_ok: bool,
+    #[serde(default)]
+    pub detail: String,
 }
 
 fn default_route_empty() -> String {
@@ -282,6 +294,7 @@ mod tests {
             last_github_delivery: None,
             github_delivery_warn: None,
             enrich: None,
+            tor: None,
         }
     }
 
