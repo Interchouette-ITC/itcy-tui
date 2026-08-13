@@ -30,22 +30,27 @@ pub const SLASH_COMMANDS: &[SlashCommand] = &[
     },
     SlashCommand {
         usage: "/draft_about <subject>, <instructions>",
-        summary: "grounded LinkedIn draft (LOAD + writer)",
+        summary: "draft from corpus about a topic you name",
         stub: false,
     },
     SlashCommand {
         usage: "/rework_draft <Draft-ID> <instructions>",
-        summary: "rewrite same draft",
+        summary: "rewrite saved draft (works until Post)",
         stub: false,
     },
     SlashCommand {
         usage: "/change_draft_url <Draft-ID> <1|2|3|https://…>",
-        summary: "swap in-post link",
+        summary: "swap in-post link (works until Post)",
         stub: false,
     },
     SlashCommand {
         usage: "/accept_draft <Draft-ID>",
-        summary: "publications BAT PR (zero LinkedIn live)",
+        summary: "open/update fork Draft PR",
+        stub: false,
+    },
+    SlashCommand {
+        usage: "/retry_bat <Draft-ID|Tweet-ID>",
+        summary: "Approve landed, webhook missed → publish",
         stub: false,
     },
     SlashCommand {
@@ -55,13 +60,43 @@ pub const SLASH_COMMANDS: &[SlashCommand] = &[
     },
     SlashCommand {
         usage: "/ingest <url>",
-        summary: "ingest public article into corpus",
+        summary: "ingest public article or LinkedIn Pulse (clearnet)",
+        stub: false,
+    },
+    SlashCommand {
+        usage: "/daily_digest",
+        summary: "press + follows + tweet searches into #daily-digest",
         stub: false,
     },
     SlashCommand {
         usage: "/propose_draft",
-        summary: "ITCy proposes subject + draft (not wired yet)",
-        stub: true,
+        summary: "new draft from corpus",
+        stub: false,
+    },
+    SlashCommand {
+        usage: "/tweet_about <subject>, <instructions>",
+        summary: "tweet from corpus (publisher URL or X quote)",
+        stub: false,
+    },
+    SlashCommand {
+        usage: "/propose_tweet",
+        summary: "new tweet from corpus",
+        stub: false,
+    },
+    SlashCommand {
+        usage: "/rework_tweet <Tweet-ID>, <instructions>",
+        summary: "rewrite saved tweet (works until XPOST)",
+        stub: false,
+    },
+    SlashCommand {
+        usage: "/change_tweet_url <Tweet-ID>, <1|2|3|https://…>",
+        summary: "swap cite (publisher or X status)",
+        stub: false,
+    },
+    SlashCommand {
+        usage: "/accept_tweet <Tweet-ID>",
+        summary: "open/update fork PR into draft_tweet",
+        stub: false,
     },
     SlashCommand {
         usage: "/accept_comment_reply <https://…>",
@@ -78,9 +113,16 @@ pub const HELP_TEXT_COMMAND_PREFIXES: &[&str] = &[
     "/rework_draft",
     "/change_draft_url",
     "/accept_draft",
+    "/retry_bat",
     "/enrich",
     "/ingest",
+    "/daily_digest",
     "/propose_draft",
+    "/tweet_about",
+    "/propose_tweet",
+    "/rework_tweet",
+    "/change_tweet_url",
+    "/accept_tweet",
     "/accept_comment_reply",
 ];
 
@@ -90,13 +132,22 @@ ITCy runtime (`#itcy`).\n\
 *Slash workflows:*\n\
 • `/help` - this list\n\
 • `/status_itcy` - process / routes / health snapshot\n\
-• `/draft_about <subject>, <instructions>` - grounded LinkedIn draft (LOAD + writer)\n\
-• `/rework_draft <Draft-ID> <instructions>` - rewrite same draft\n\
-• `/change_draft_url <Draft-ID> <1|2|3|https://…>` - swap in-post link\n\
-• `/accept_draft <Draft-ID>` - publications BAT PR (zero LinkedIn live)\n\
+• `/draft_about <subject>, <instructions>` - draft from corpus about a topic you name\n\
+• `/rework_draft <Draft-ID> <instructions>` - rewrite saved draft (works until Post)\n\
+• `/change_draft_url <Draft-ID> <1|2|3|https://…>` - swap in-post link (works until Post)\n\
+• `/accept_draft <Draft-ID>` - open/update fork Draft PR (safe to re-run if already accepted; publishes Post if Approve is on GitHub but webhook missed)\n\
+• `/retry_bat <Draft-ID|Tweet-ID>` - same: Approve already landed, webhook missed → publish Post or XPOST\n\
 • `/enrich <url>` - enrich corpus with Greg LinkedIn post (Tor)\n\
-• `/ingest <url>` - ingest public article into corpus\n\
-• `/propose_draft` - ITCy proposes subject + draft (not wired yet)\n\
+• `/ingest <url>` - ingest public article or LinkedIn Pulse (clearnet)\n\
+• `/daily_digest` - 20 press + 20 follows + 20 tweet searches into `#daily-digest` (not corpus, not LinkedIn)\n\
+• `/propose_draft` - new draft from corpus (what we already know)\n\
+• `/propose_draft <DIGEST-…>, <1|1,3>` or `/propose_draft <N>` - new drafts from that digest's propositions\n\
+• `/tweet_about <subject>, <instructions>` - tweet from corpus (cite = publisher URL or X status quote)\n\
+• `/propose_tweet` - new tweet from corpus\n\
+• `/propose_tweet <DIGEST-…>, <1|1,3>` or `/propose_tweet <N>` - new tweets from that digest's propositions\n\
+• `/rework_tweet <Tweet-ID>, <instructions>` - rewrite saved tweet (works until XPOST)\n\
+• `/change_tweet_url <Tweet-ID>, <1|2|3|https://…>` - swap cite (publisher or X status)\n\
+• `/accept_tweet <Tweet-ID>` - open/update fork PR into draft_tweet\n\
 • `/accept_comment_reply <https://…>` - accept comment-reply BAT pack (not wired yet)\n\
 *Freeform chat:* anything else (informal / informational; tools OK). No draft/BAT/corpus ingest here.";
 
@@ -127,7 +178,6 @@ mod tests {
                 PRODUCT_HELP_TEXT_SNAPSHOT.contains(name),
                 "help snapshot missing {name}"
             );
-            // Stub rows must say not wired; live rows must not.
             if cmd.stub {
                 assert!(
                     cmd.summary.contains("not wired yet"),
@@ -139,10 +189,9 @@ mod tests {
     }
 
     #[test]
-    fn stubs_are_propose_and_comment_reply() {
+    fn stubs_are_comment_reply_only() {
         let stubs: Vec<_> = SLASH_COMMANDS.iter().filter(|c| c.stub).collect();
-        assert_eq!(stubs.len(), 2);
-        assert!(stubs.iter().any(|c| c.usage.starts_with("/propose_draft")));
+        assert_eq!(stubs.len(), 1);
         assert!(stubs
             .iter()
             .any(|c| c.usage.starts_with("/accept_comment_reply")));
