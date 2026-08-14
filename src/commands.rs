@@ -16,15 +16,15 @@ pub struct SlashCommand {
     pub stub: bool,
 }
 
-/// Authoritative TUI catalog (mirrors Slack `/help`).
+/// Authoritative TUI catalog (mirrors Slack help).
 pub const SLASH_COMMANDS: &[SlashCommand] = &[
     SlashCommand {
-        usage: "/help",
+        usage: "help",
         summary: "this list",
         stub: false,
     },
     SlashCommand {
-        usage: "/status_itcy",
+        usage: "status_itcy",
         summary: "process / routes / health snapshot",
         stub: false,
     },
@@ -39,33 +39,33 @@ pub const SLASH_COMMANDS: &[SlashCommand] = &[
         stub: false,
     },
     SlashCommand {
-        usage: "/rework_draft <Draft-ID> <instructions>",
-        summary: "rewrite saved draft (works until Post)",
+        usage: "/rework <Draft-ID|Tweet-ID> <instructions>",
+        summary: "rewrite saved draft or tweet",
         stub: false,
     },
     SlashCommand {
-        usage: "/change_draft_url <Draft-ID> <0|1|2|3|https://…>",
+        usage: "/change_url <Draft-ID|Tweet-ID> <0|1|2|3|https://…>",
         summary: "set the link; 0 = no link",
         stub: false,
     },
     SlashCommand {
-        usage: "/accept_draft <Draft-ID>",
-        summary: "open/update fork Draft PR",
+        usage: "/accept <Draft-ID|Tweet-ID>",
+        summary: "open/update BAT PR (LinkedIn or X)",
         stub: false,
     },
     SlashCommand {
-        usage: "/list_drafts",
-        summary: "list saved LinkedIn drafts (not published)",
+        usage: "/list",
+        summary: "list saved drafts and tweets (not published)",
         stub: false,
     },
     SlashCommand {
-        usage: "/show_draft <Draft-ID>[, <Draft-ID>]",
-        summary: "show saved draft(s)",
+        usage: "/show <Draft-ID|Tweet-ID>[, <ID>]",
+        summary: "show saved draft(s) and/or tweet(s)",
         stub: false,
     },
     SlashCommand {
-        usage: "/delete_draft <Draft-ID>[, <Draft-ID>]",
-        summary: "delete saved draft(s) and close GitHub PRs",
+        usage: "/delete <Draft-ID|Tweet-ID>[, <ID>]",
+        summary: "delete saved row(s) and close GitHub PRs",
         stub: false,
     },
     SlashCommand {
@@ -114,36 +114,6 @@ pub const SLASH_COMMANDS: &[SlashCommand] = &[
         stub: false,
     },
     SlashCommand {
-        usage: "/rework_tweet <Tweet-ID>, <instructions>",
-        summary: "rewrite saved tweet (works until XPOST)",
-        stub: false,
-    },
-    SlashCommand {
-        usage: "/change_tweet_url <Tweet-ID>, <0|1|2|3|https://…>",
-        summary: "set the link; 0 = no link",
-        stub: false,
-    },
-    SlashCommand {
-        usage: "/accept_tweet <Tweet-ID>",
-        summary: "open/update PR into draft_tweet",
-        stub: false,
-    },
-    SlashCommand {
-        usage: "/list_tweets",
-        summary: "list saved tweets (not published)",
-        stub: false,
-    },
-    SlashCommand {
-        usage: "/show_tweet <Tweet-ID>[, <Tweet-ID>]",
-        summary: "show saved tweet(s)",
-        stub: false,
-    },
-    SlashCommand {
-        usage: "/delete_tweet <Tweet-ID>[, <Tweet-ID>]",
-        summary: "delete saved tweet(s) and close GitHub PRs",
-        stub: false,
-    },
-    SlashCommand {
         usage: "/accept_comment_reply <https://…>",
         summary: "LinkedIn comment-reply BAT (not wired yet)",
         stub: true,
@@ -152,16 +122,16 @@ pub const SLASH_COMMANDS: &[SlashCommand] = &[
 
 /// Command name prefixes that must appear in product `help_text()` (sync check).
 pub const HELP_TEXT_COMMAND_PREFIXES: &[&str] = &[
-    "/help",
-    "/status_itcy",
+    "help",
+    "status_itcy",
     "/draft_about",
     "/draft_about_itc",
-    "/rework_draft",
-    "/change_draft_url",
-    "/accept_draft",
-    "/list_drafts",
-    "/show_draft",
-    "/delete_draft",
+    "/rework",
+    "/change_url",
+    "/accept",
+    "/list",
+    "/show",
+    "/delete",
     "/retry_bat",
     "/enrich",
     "/ingest",
@@ -171,29 +141,24 @@ pub const HELP_TEXT_COMMAND_PREFIXES: &[&str] = &[
     "/tweet_farce",
     "/draft_tweet_about_itc",
     "/propose_tweet",
-    "/rework_tweet",
-    "/change_tweet_url",
-    "/accept_tweet",
-    "/list_tweets",
-    "/show_tweet",
-    "/delete_tweet",
     "/accept_comment_reply",
 ];
 
 /// Snapshot of product `help_text()` used to detect TUI/Slack catalog drift in tests.
 pub const PRODUCT_HELP_TEXT_SNAPSHOT: &str = "\
 ITCy runtime (`#itcy`).\n\
+*Keywords (type in channel):*\n\
+• `help` / `commands` - this list\n\
+• `status_itcy` - process / routes / health snapshot\n\
 *Slash workflows:*\n\
-• `/help` - this list\n\
-• `/status_itcy` - process / routes / health snapshot\n\
 • `/draft_about <subject>, <instructions>` - draft; a https in instructions is the in-post cite\n\
 • `/draft_about_itc` or `/draft_about_itc <subject>, <instructions>` - LinkedIn draft about Interchouette / our projects\n\
-• `/rework_draft <Draft-ID> <instructions>` - rewrite saved draft (works until Post)\n\
-• `/change_draft_url <Draft-ID> <0|1|2|3|https://…>` - set the link (`1`/`2`/`3` or URL); `0` = no link\n\
-• `/accept_draft <Draft-ID>` - open/update fork Draft PR (safe to re-run if already accepted; publishes Post if Approve is on GitHub but webhook missed)\n\
-• `/list_drafts` - list saved LinkedIn drafts (not published)\n\
-• `/show_draft <Draft-ID>[, <Draft-ID>]` - show saved draft(s)\n\
-• `/delete_draft <Draft-ID>[, <Draft-ID>]` - delete saved draft(s) and close GitHub PRs if open\n\
+• `/rework <Draft-ID|Tweet-ID> <instructions>` - rewrite saved draft or tweet (until Post / XPOST)\n\
+• `/change_url <Draft-ID|Tweet-ID> <0|1|2|3|https://…>` - set the link (`1`/`2`/`3` or URL); `0` = no link\n\
+• `/accept <Draft-ID|Tweet-ID>` - open/update BAT PR (LinkedIn `drafts` or X `draft_tweet`; safe to re-run; publishes if Approve is on GitHub but webhook missed)\n\
+• `/list` - list saved LinkedIn drafts and tweets (not published)\n\
+• `/show <Draft-ID|Tweet-ID>[, <ID>]` - show saved draft(s) and/or tweet(s)\n\
+• `/delete <Draft-ID|Tweet-ID>[, <ID>]` - delete saved row(s) and close GitHub PRs if open\n\
 • `/retry_bat <Draft-ID|Tweet-ID|XPOST-ID>` - re-ship after BAT (missed webhook or X/LinkedIn ship failed)\n\
 • `/enrich <url>` - enrich corpus with Greg LinkedIn post (Tor)\n\
 • `/ingest <url>` - ingest public article or LinkedIn Pulse (clearnet)\n\
@@ -205,12 +170,6 @@ ITCy runtime (`#itcy`).\n\
 • `/draft_tweet_about_itc` or `/draft_tweet_about_itc <subject>, <instructions>` - X tweet about Interchouette / our projects\n\
 • `/propose_tweet` - new tweet from corpus\n\
 • `/propose_tweet <DIGEST-…>, <1|1,3>` or `/propose_tweet <N>` - new tweets from that digest's propositions\n\
-• `/rework_tweet <Tweet-ID>, <instructions>` - rewrite saved tweet (works until XPOST)\n\
-• `/change_tweet_url <Tweet-ID>, <0|1|2|3|https://…>` - set the link (`1`/`2`/`3` or URL); `0` = no link\n\
-• `/accept_tweet <Tweet-ID>` - open/update PR into draft_tweet (X playground = fork, X production = org)\n\
-• `/list_tweets` - list saved tweets (not published)\n\
-• `/show_tweet <Tweet-ID>[, <Tweet-ID>]` - show saved tweet(s)\n\
-• `/delete_tweet <Tweet-ID>[, <Tweet-ID>]` - delete saved tweet(s) and close GitHub PRs if open\n\
 • `/accept_comment_reply <https://…>` - LinkedIn comment-reply BAT (not wired yet; not a tweet reply)\n\
 *Freeform chat:* anything else (informal / informational; tools OK). No draft/BAT/corpus ingest here.";
 
