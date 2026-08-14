@@ -99,6 +99,21 @@ pub const SLASH_COMMANDS: &[SlashCommand] = &[
         stub: false,
     },
     SlashCommand {
+        usage: "/list_tweets",
+        summary: "list saved tweets (newest first)",
+        stub: false,
+    },
+    SlashCommand {
+        usage: "/show_tweet <Tweet-ID>",
+        summary: "show one saved tweet",
+        stub: false,
+    },
+    SlashCommand {
+        usage: "/delete_tweet <Tweet-ID>",
+        summary: "delete a saved tweet row",
+        stub: false,
+    },
+    SlashCommand {
         usage: "/accept_comment_reply <https://…>",
         summary: "accept comment-reply BAT pack (not wired yet)",
         stub: true,
@@ -123,6 +138,9 @@ pub const HELP_TEXT_COMMAND_PREFIXES: &[&str] = &[
     "/rework_tweet",
     "/change_tweet_url",
     "/accept_tweet",
+    "/list_tweets",
+    "/show_tweet",
+    "/delete_tweet",
     "/accept_comment_reply",
 ];
 
@@ -148,6 +166,9 @@ ITCy runtime (`#itcy`).\n\
 • `/rework_tweet <Tweet-ID>, <instructions>` - rewrite saved tweet (works until XPOST)\n\
 • `/change_tweet_url <Tweet-ID>, <1|2|3|https://…>` - swap cite (publisher or X status)\n\
 • `/accept_tweet <Tweet-ID>` - open/update fork PR into draft_tweet\n\
+• `/list_tweets` - list saved tweets (newest first)\n\
+• `/show_tweet <Tweet-ID>` - show one saved tweet\n\
+• `/delete_tweet <Tweet-ID>` - delete a saved tweet row (does not close a GitHub PR)\n\
 • `/accept_comment_reply <https://…>` - accept comment-reply BAT pack (not wired yet)\n\
 *Freeform chat:* anything else (informal / informational; tools OK). No draft/BAT/corpus ingest here.";
 
