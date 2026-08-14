@@ -50,7 +50,7 @@ pub const SLASH_COMMANDS: &[SlashCommand] = &[
     },
     SlashCommand {
         usage: "/list_drafts",
-        summary: "list saved LinkedIn drafts (newest first)",
+        summary: "list saved LinkedIn drafts (not published)",
         stub: false,
     },
     SlashCommand {
@@ -115,7 +115,7 @@ pub const SLASH_COMMANDS: &[SlashCommand] = &[
     },
     SlashCommand {
         usage: "/list_tweets",
-        summary: "list saved tweets (newest first)",
+        summary: "list saved tweets (not published)",
         stub: false,
     },
     SlashCommand {
@@ -172,7 +172,7 @@ ITCy runtime (`#itcy`).\n\
 • `/rework_draft <Draft-ID> <instructions>` - rewrite saved draft (works until Post)\n\
 • `/change_draft_url <Draft-ID> <1|2|3|https://…>` - swap in-post link (works until Post)\n\
 • `/accept_draft <Draft-ID>` - open/update fork Draft PR (safe to re-run if already accepted; publishes Post if Approve is on GitHub but webhook missed)\n\
-• `/list_drafts` - list saved LinkedIn drafts (newest first)\n\
+• `/list_drafts` - list saved LinkedIn drafts (not published)\n\
 • `/show_draft <Draft-ID>` - show one saved draft\n\
 • `/delete_draft <Draft-ID>` - delete a saved draft and close its GitHub PR if open\n\
 • `/retry_bat <Draft-ID|Tweet-ID>` - same: Approve already landed, webhook missed → publish Post or XPOST\n\
@@ -187,7 +187,7 @@ ITCy runtime (`#itcy`).\n\
 • `/rework_tweet <Tweet-ID>, <instructions>` - rewrite saved tweet (works until XPOST)\n\
 • `/change_tweet_url <Tweet-ID>, <1|2|3|https://…>` - swap cite (publisher or X status)\n\
 • `/accept_tweet <Tweet-ID>` - open/update fork PR into draft_tweet\n\
-• `/list_tweets` - list saved tweets (newest first)\n\
+• `/list_tweets` - list saved tweets (not published)\n\
 • `/show_tweet <Tweet-ID>` - show one saved tweet\n\
 • `/delete_tweet <Tweet-ID>` - delete a saved tweet and close its GitHub PR if open\n\
 • `/accept_comment_reply <https://…>` - LinkedIn comment-reply BAT (not wired yet; not a tweet reply)\n\
