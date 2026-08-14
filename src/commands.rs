@@ -54,13 +54,13 @@ pub const SLASH_COMMANDS: &[SlashCommand] = &[
         stub: false,
     },
     SlashCommand {
-        usage: "/show_draft <Draft-ID>",
-        summary: "show one saved draft",
+        usage: "/show_draft <Draft-ID>[, <Draft-ID>]",
+        summary: "show saved draft(s)",
         stub: false,
     },
     SlashCommand {
-        usage: "/delete_draft <Draft-ID>",
-        summary: "delete a saved draft and close its GitHub PR",
+        usage: "/delete_draft <Draft-ID>[, <Draft-ID>]",
+        summary: "delete saved draft(s) and close GitHub PRs",
         stub: false,
     },
     SlashCommand {
@@ -119,13 +119,13 @@ pub const SLASH_COMMANDS: &[SlashCommand] = &[
         stub: false,
     },
     SlashCommand {
-        usage: "/show_tweet <Tweet-ID>",
-        summary: "show one saved tweet",
+        usage: "/show_tweet <Tweet-ID>[, <Tweet-ID>]",
+        summary: "show saved tweet(s)",
         stub: false,
     },
     SlashCommand {
-        usage: "/delete_tweet <Tweet-ID>",
-        summary: "delete a saved tweet and close its GitHub PR",
+        usage: "/delete_tweet <Tweet-ID>[, <Tweet-ID>]",
+        summary: "delete saved tweet(s) and close GitHub PRs",
         stub: false,
     },
     SlashCommand {
@@ -173,8 +173,8 @@ ITCy runtime (`#itcy`).\n\
 • `/change_draft_url <Draft-ID> <1|2|3|https://…>` - swap in-post link (works until Post)\n\
 • `/accept_draft <Draft-ID>` - open/update fork Draft PR (safe to re-run if already accepted; publishes Post if Approve is on GitHub but webhook missed)\n\
 • `/list_drafts` - list saved LinkedIn drafts (not published)\n\
-• `/show_draft <Draft-ID>` - show one saved draft\n\
-• `/delete_draft <Draft-ID>` - delete a saved draft and close its GitHub PR if open\n\
+• `/show_draft <Draft-ID>[, <Draft-ID>]` - show saved draft(s)\n\
+• `/delete_draft <Draft-ID>[, <Draft-ID>]` - delete saved draft(s) and close GitHub PRs if open\n\
 • `/retry_bat <Draft-ID|Tweet-ID>` - same: Approve already landed, webhook missed → publish Post or XPOST\n\
 • `/enrich <url>` - enrich corpus with Greg LinkedIn post (Tor)\n\
 • `/ingest <url>` - ingest public article or LinkedIn Pulse (clearnet)\n\
@@ -188,8 +188,8 @@ ITCy runtime (`#itcy`).\n\
 • `/change_tweet_url <Tweet-ID>, <1|2|3|https://…>` - swap cite (publisher or X status)\n\
 • `/accept_tweet <Tweet-ID>` - open/update fork PR into draft_tweet\n\
 • `/list_tweets` - list saved tweets (not published)\n\
-• `/show_tweet <Tweet-ID>` - show one saved tweet\n\
-• `/delete_tweet <Tweet-ID>` - delete a saved tweet and close its GitHub PR if open\n\
+• `/show_tweet <Tweet-ID>[, <Tweet-ID>]` - show saved tweet(s)\n\
+• `/delete_tweet <Tweet-ID>[, <Tweet-ID>]` - delete saved tweet(s) and close GitHub PRs if open\n\
 • `/accept_comment_reply <https://…>` - LinkedIn comment-reply BAT (not wired yet; not a tweet reply)\n\
 *Freeform chat:* anything else (informal / informational; tools OK). No draft/BAT/corpus ingest here.";
 
