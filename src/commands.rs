@@ -30,7 +30,12 @@ pub const SLASH_COMMANDS: &[SlashCommand] = &[
     },
     SlashCommand {
         usage: "/draft_about <subject>, <instructions>",
-        summary: "draft from corpus about a topic you name",
+        summary: "draft; a https in instructions is the in-post cite",
+        stub: false,
+    },
+    SlashCommand {
+        usage: "/draft_about_itc",
+        summary: "LinkedIn draft about Interchouette / our projects",
         stub: false,
     },
     SlashCommand {
@@ -39,8 +44,8 @@ pub const SLASH_COMMANDS: &[SlashCommand] = &[
         stub: false,
     },
     SlashCommand {
-        usage: "/change_draft_url <Draft-ID> <1|2|3|https://…>",
-        summary: "swap in-post link (works until Post)",
+        usage: "/change_draft_url <Draft-ID> <0|1|2|3|https://…>",
+        summary: "set the link; 0 = no link",
         stub: false,
     },
     SlashCommand {
@@ -64,8 +69,8 @@ pub const SLASH_COMMANDS: &[SlashCommand] = &[
         stub: false,
     },
     SlashCommand {
-        usage: "/retry_bat <Draft-ID|Tweet-ID>",
-        summary: "Approve landed, webhook missed → publish",
+        usage: "/retry_bat <Draft-ID|Tweet-ID|XPOST-ID>",
+        summary: "re-ship after BAT (missed webhook or ship failed)",
         stub: false,
     },
     SlashCommand {
@@ -80,7 +85,7 @@ pub const SLASH_COMMANDS: &[SlashCommand] = &[
     },
     SlashCommand {
         usage: "/daily_digest",
-        summary: "press + follows + tweet searches into #daily-digest",
+        summary: "press + follows + tweet searches + Interchouette into #daily-digest",
         stub: false,
     },
     SlashCommand {
@@ -90,7 +95,17 @@ pub const SLASH_COMMANDS: &[SlashCommand] = &[
     },
     SlashCommand {
         usage: "/tweet_about <subject>, <instructions>",
-        summary: "tweet from corpus (publisher URL or X quote)",
+        summary: "tweet; https in instructions locks quote or link",
+        stub: false,
+    },
+    SlashCommand {
+        usage: "/tweet_farce",
+        summary: "dad-joke tweet tagging @grok @cursor_ai @elonmusk",
+        stub: false,
+    },
+    SlashCommand {
+        usage: "/draft_tweet_about_itc",
+        summary: "X tweet about Interchouette / our projects",
         stub: false,
     },
     SlashCommand {
@@ -104,13 +119,13 @@ pub const SLASH_COMMANDS: &[SlashCommand] = &[
         stub: false,
     },
     SlashCommand {
-        usage: "/change_tweet_url <Tweet-ID>, <1|2|3|https://…>",
-        summary: "swap cite (publisher or X status)",
+        usage: "/change_tweet_url <Tweet-ID>, <0|1|2|3|https://…>",
+        summary: "set the link; 0 = no link",
         stub: false,
     },
     SlashCommand {
         usage: "/accept_tweet <Tweet-ID>",
-        summary: "open/update fork PR into draft_tweet",
+        summary: "open/update PR into draft_tweet",
         stub: false,
     },
     SlashCommand {
@@ -140,6 +155,7 @@ pub const HELP_TEXT_COMMAND_PREFIXES: &[&str] = &[
     "/help",
     "/status_itcy",
     "/draft_about",
+    "/draft_about_itc",
     "/rework_draft",
     "/change_draft_url",
     "/accept_draft",
@@ -152,6 +168,8 @@ pub const HELP_TEXT_COMMAND_PREFIXES: &[&str] = &[
     "/daily_digest",
     "/propose_draft",
     "/tweet_about",
+    "/tweet_farce",
+    "/draft_tweet_about_itc",
     "/propose_tweet",
     "/rework_tweet",
     "/change_tweet_url",
@@ -168,25 +186,28 @@ ITCy runtime (`#itcy`).\n\
 *Slash workflows:*\n\
 • `/help` - this list\n\
 • `/status_itcy` - process / routes / health snapshot\n\
-• `/draft_about <subject>, <instructions>` - draft from corpus about a topic you name\n\
+• `/draft_about <subject>, <instructions>` - draft; a https in instructions is the in-post cite\n\
+• `/draft_about_itc` or `/draft_about_itc <subject>, <instructions>` - LinkedIn draft about Interchouette / our projects\n\
 • `/rework_draft <Draft-ID> <instructions>` - rewrite saved draft (works until Post)\n\
-• `/change_draft_url <Draft-ID> <1|2|3|https://…>` - swap in-post link (works until Post)\n\
+• `/change_draft_url <Draft-ID> <0|1|2|3|https://…>` - set the link (`1`/`2`/`3` or URL); `0` = no link\n\
 • `/accept_draft <Draft-ID>` - open/update fork Draft PR (safe to re-run if already accepted; publishes Post if Approve is on GitHub but webhook missed)\n\
 • `/list_drafts` - list saved LinkedIn drafts (not published)\n\
 • `/show_draft <Draft-ID>[, <Draft-ID>]` - show saved draft(s)\n\
 • `/delete_draft <Draft-ID>[, <Draft-ID>]` - delete saved draft(s) and close GitHub PRs if open\n\
-• `/retry_bat <Draft-ID|Tweet-ID>` - same: Approve already landed, webhook missed → publish Post or XPOST\n\
+• `/retry_bat <Draft-ID|Tweet-ID|XPOST-ID>` - re-ship after BAT (missed webhook or X/LinkedIn ship failed)\n\
 • `/enrich <url>` - enrich corpus with Greg LinkedIn post (Tor)\n\
 • `/ingest <url>` - ingest public article or LinkedIn Pulse (clearnet)\n\
-• `/daily_digest` - 20 press + 20 follows + 20 tweet searches into `#daily-digest` (not corpus, not LinkedIn)\n\
+• `/daily_digest` - 20 press + 20 follows + 20 tweet searches + 10 Interchouette (5 draft / 5 tweet) into `#daily-digest`\n\
 • `/propose_draft` - new draft from corpus (what we already know)\n\
 • `/propose_draft <DIGEST-…>, <1|1,3>` or `/propose_draft <N>` - new drafts from that digest's propositions\n\
-• `/tweet_about <subject>, <instructions>` - tweet from corpus (cite = publisher URL or X status quote)\n\
+• `/tweet_about <subject>, <instructions>` - tweet; a https in instructions locks the quote (X status) or the link (publisher)\n\
+• `/tweet_farce` or `/tweet_farce <theme hint>` - dad-joke / IT wordplay tagging @grok @cursor_ai @elonmusk (no cite)\n\
+• `/draft_tweet_about_itc` or `/draft_tweet_about_itc <subject>, <instructions>` - X tweet about Interchouette / our projects\n\
 • `/propose_tweet` - new tweet from corpus\n\
 • `/propose_tweet <DIGEST-…>, <1|1,3>` or `/propose_tweet <N>` - new tweets from that digest's propositions\n\
 • `/rework_tweet <Tweet-ID>, <instructions>` - rewrite saved tweet (works until XPOST)\n\
-• `/change_tweet_url <Tweet-ID>, <1|2|3|https://…>` - swap cite (publisher or X status)\n\
-• `/accept_tweet <Tweet-ID>` - open/update fork PR into draft_tweet\n\
+• `/change_tweet_url <Tweet-ID>, <0|1|2|3|https://…>` - set the link (`1`/`2`/`3` or URL); `0` = no link\n\
+• `/accept_tweet <Tweet-ID>` - open/update PR into draft_tweet (X playground = fork, X production = org)\n\
 • `/list_tweets` - list saved tweets (not published)\n\
 • `/show_tweet <Tweet-ID>[, <Tweet-ID>]` - show saved tweet(s)\n\
 • `/delete_tweet <Tweet-ID>[, <Tweet-ID>]` - delete saved tweet(s) and close GitHub PRs if open\n\
