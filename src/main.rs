@@ -8,11 +8,12 @@ use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen,
 };
 use crossterm::{cursor, ExecutableCommand};
+use itcy_tui::github::{PubsBranch, PubsRemote};
 use itcy_tui::health::{
     fetch_health, replace_health_path, DEFAULT_HEALTH_URL, DEFAULT_INGRESS_HEALTH_URL,
 };
 use itcy_tui::status::{fetch_status, DEFAULT_STATUS_URL};
-use itcy_tui::ui::{draw, StatusModel};
+use itcy_tui::ui::{draw, StatusModel, ViewMode};
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 use std::env;
@@ -34,6 +35,11 @@ fn main() -> io::Result<()> {
     let health = fetch_health(&health_url);
     let runtime = fetch_status(&status_url);
 
+    let mut model = StatusModel::new(health_url.clone(), status_url.clone(), health, runtime);
+    model.ingress_health = fetch_health(DEFAULT_INGRESS_HEALTH_URL);
+    // GitHub tree fetch happens here (before raw mode) when landing on public pubs.
+    model.apply_boot_view();
+
     install_signal_handlers();
     install_panic_hook();
     let use_alt = !inside_gnu_screen();
@@ -44,8 +50,6 @@ fn main() -> io::Result<()> {
     // Always hard-clear the surface we draw on (main buffer under GNU screen).
     terminal.clear()?;
 
-    let mut model = StatusModel::new(health_url.clone(), status_url.clone(), health, runtime);
-    model.ingress_health = fetch_health(DEFAULT_INGRESS_HEALTH_URL);
     let poll = Duration::from_secs(1);
     let mut last = Instant::now().checked_sub(poll).unwrap();
 
@@ -93,15 +97,16 @@ fn run_loop(
 
         if event::poll(Duration::from_millis(200))? {
             if let Event::Key(key) = event::read()? {
-                if key.kind == KeyEventKind::Press && is_quit_key(key.code, key.modifiers) {
-                    break;
+                if key.kind != KeyEventKind::Press {
+                    continue;
                 }
-                if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('r') {
-                    refresh(model, health_url, status_url);
-                    *last = Instant::now();
-                }
-                if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('c') {
-                    model.toggle_commands();
+                match handle_key(model, key.code, key.modifiers) {
+                    KeyAction::Quit => break,
+                    KeyAction::RefreshProbes => {
+                        refresh(model, health_url, status_url);
+                        *last = Instant::now();
+                    }
+                    KeyAction::None => {}
                 }
             }
         }
@@ -109,9 +114,81 @@ fn run_loop(
     Ok(())
 }
 
-fn is_quit_key(code: KeyCode, modifiers: KeyModifiers) -> bool {
-    matches!(code, KeyCode::Char('q') | KeyCode::Esc)
-        || (code == KeyCode::Char('c') && modifiers.contains(KeyModifiers::CONTROL))
+enum KeyAction {
+    None,
+    Quit,
+    RefreshProbes,
+}
+
+fn handle_key(model: &mut StatusModel, code: KeyCode, modifiers: KeyModifiers) -> KeyAction {
+    if code == KeyCode::Char('c') && modifiers.contains(KeyModifiers::CONTROL) {
+        return KeyAction::Quit;
+    }
+    if model.view == ViewMode::Publications && model.pubs.filter_edit {
+        return handle_filter_key(model, code);
+    }
+    match code {
+        KeyCode::Char('q') | KeyCode::Esc => KeyAction::Quit,
+        KeyCode::Char('r') => {
+            if model.view == ViewMode::Publications {
+                model.pubs.reload_tree();
+            }
+            if model.view == ViewMode::SavedList {
+                model.show_saved_list();
+            }
+            KeyAction::RefreshProbes
+        }
+        KeyCode::Char('d') => {
+            model.show_live();
+            KeyAction::None
+        }
+        KeyCode::Char('c') => {
+            model.show_commands();
+            KeyAction::None
+        }
+        KeyCode::Char('p') => {
+            model.show_publications();
+            KeyAction::None
+        }
+        KeyCode::Char('s') => {
+            model.show_saved_list();
+            KeyAction::None
+        }
+        other if model.view == ViewMode::Publications => handle_pubs_nav(model, other),
+        _ => KeyAction::None,
+    }
+}
+
+fn handle_filter_key(model: &mut StatusModel, code: KeyCode) -> KeyAction {
+    match code {
+        KeyCode::Esc => model.pubs.end_filter(true),
+        KeyCode::Enter => model.pubs.end_filter(false),
+        KeyCode::Backspace => model.pubs.filter_pop(),
+        KeyCode::Char(ch) => model.pubs.filter_push(ch),
+        _ => {}
+    }
+    KeyAction::None
+}
+
+fn handle_pubs_nav(model: &mut StatusModel, code: KeyCode) -> KeyAction {
+    match code {
+        KeyCode::Char('j') | KeyCode::Down => model.pubs.move_selection(1),
+        KeyCode::Char('k') | KeyCode::Up => model.pubs.move_selection(-1),
+        KeyCode::Enter => model.pubs.load_selected(),
+        KeyCode::Char('/') => model.pubs.begin_filter(),
+        KeyCode::Char('o') => model.pubs.set_remote(PubsRemote::Org),
+        KeyCode::Char('f') => model.pubs.set_remote(PubsRemote::Fork),
+        KeyCode::Tab => model.pubs.cycle_branch(),
+        KeyCode::Char(digit) => {
+            if let Some(branch) = PubsBranch::from_digit(digit) {
+                model.pubs.set_branch(branch);
+            }
+        }
+        KeyCode::PageUp => model.pubs.scroll_body(-8),
+        KeyCode::PageDown => model.pubs.scroll_body(8),
+        _ => {}
+    }
+    KeyAction::None
 }
 
 /// GNU screen sets `STY`. Its default config often ignores the xterm alt buffer,

@@ -3,8 +3,11 @@
 
 //! `ITCy` ratatui status library.
 
+pub mod artefact;
 pub mod commands;
+pub mod github;
 pub mod health;
+pub mod inject;
 pub mod status;
 pub mod ui;
 
