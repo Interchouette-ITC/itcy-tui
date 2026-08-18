@@ -59,25 +59,25 @@ pub fn interpret_health(status: u16, body: &str) -> HealthStatus {
     }
 }
 
+/// Shared HTTP client for probes and GitHub.
+///
+/// # Errors
+///
+/// Returns when the reqwest client cannot be built.
+pub fn new_client() -> Result<reqwest::Client, String> {
+    reqwest::Client::builder()
+        .user_agent("itcy-tui/0.1 (+https://github.com/Interchouette-ITC/itcy-tui)")
+        .build()
+        .map_err(|e| format!("client: {e}"))
+}
+
 /// GETs `url` and interprets the response. Network errors become `Down`.
 #[must_use]
-pub fn fetch_health(url: &str) -> HealthStatus {
-    let client = match reqwest::blocking::Client::builder()
-        .timeout(PROBE_TIMEOUT)
-        .build()
-    {
-        Ok(c) => c,
-        Err(e) => {
-            return HealthStatus::Down {
-                reason: format!("client: {e}"),
-            };
-        }
-    };
-
-    match client.get(url).send() {
+pub async fn fetch_health(client: &reqwest::Client, url: &str) -> HealthStatus {
+    match client.get(url).timeout(PROBE_TIMEOUT).send().await {
         Ok(resp) => {
             let status = resp.status().as_u16();
-            let body = resp.text().unwrap_or_default();
+            let body = resp.text().await.unwrap_or_default();
             interpret_health(status, &body)
         }
         Err(e) => HealthStatus::Down {

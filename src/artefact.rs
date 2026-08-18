@@ -14,6 +14,8 @@ pub struct Artefact {
     pub body_path: String,
     /// Sibling `meta.toml`.
     pub meta_path: String,
+    /// Subject from `meta.toml` once loaded this session.
+    pub subject: String,
 }
 
 /// `body.md` path -> artefact, or `None` if not a known id folder.
@@ -30,6 +32,7 @@ pub fn artefact_from_body_path(path: &str) -> Option<Artefact> {
         body_path: name,
         meta_path,
         id,
+        subject: String::new(),
     })
 }
 

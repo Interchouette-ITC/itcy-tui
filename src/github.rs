@@ -77,17 +77,6 @@ impl PubsBranch {
         self.git_name()
     }
 
-    /// Next branch in tab order.
-    #[must_use]
-    pub const fn next(self) -> Self {
-        match self {
-            Self::Drafts => Self::Posts,
-            Self::Posts => Self::DraftsTweet,
-            Self::DraftsTweet => Self::Tweets,
-            Self::Tweets => Self::Drafts,
-        }
-    }
-
     /// Digit keys: `1` drafts, `2` posts, `3` `drafts_tweet`, `4` tweets.
     #[must_use]
     pub const fn from_digit(digit: char) -> Option<Self> {
@@ -99,6 +88,9 @@ impl PubsBranch {
             _ => None,
         }
     }
+
+    /// All kinds in tab order.
+    pub const ALL: [Self; 4] = [Self::Drafts, Self::Posts, Self::DraftsTweet, Self::Tweets];
 }
 
 /// Tree fetch outcome.
@@ -110,6 +102,17 @@ pub struct TreeFetch {
     pub rate_remaining: Option<u32>,
     /// Error line when the request failed (artefacts empty).
     pub error: Option<String>,
+}
+
+/// Body + meta for one artefact.
+#[derive(Debug, Clone)]
+pub struct PreviewFetch {
+    /// Artefact id.
+    pub id: String,
+    /// `body.md` text or error.
+    pub body: Result<String, String>,
+    /// Subject from `meta.toml`.
+    pub subject: String,
 }
 
 #[derive(Deserialize)]
@@ -134,22 +137,14 @@ fn optional_token() -> Option<String> {
         .filter(|s| !s.is_empty())
 }
 
-fn client(timeout: Duration) -> Result<reqwest::blocking::Client, String> {
-    reqwest::blocking::Client::builder()
-        .timeout(timeout)
-        .user_agent("itcy-tui/0.1 (+https://github.com/Interchouette-ITC/itcy-tui)")
-        .build()
-        .map_err(|e| format!("client: {e}"))
-}
-
-fn apply_auth(req: reqwest::blocking::RequestBuilder) -> reqwest::blocking::RequestBuilder {
+fn apply_auth(req: reqwest::RequestBuilder) -> reqwest::RequestBuilder {
     match optional_token() {
         Some(t) => req.bearer_auth(t),
         None => req,
     }
 }
 
-fn rate_from(resp: &reqwest::blocking::Response) -> Option<u32> {
+fn rate_from(resp: &reqwest::Response) -> Option<u32> {
     resp.headers()
         .get("x-ratelimit-remaining")
         .and_then(|v| v.to_str().ok())
@@ -158,21 +153,21 @@ fn rate_from(resp: &reqwest::blocking::Response) -> Option<u32> {
 
 /// Recursive git tree for `owner/itcy-publications` at `branch`.
 #[must_use]
-pub fn fetch_branch_tree(remote: PubsRemote, branch: PubsBranch) -> TreeFetch {
+pub async fn fetch_branch_tree(
+    client: &reqwest::Client,
+    remote: PubsRemote,
+    branch: PubsBranch,
+) -> TreeFetch {
     let url = format!(
         "https://api.github.com/repos/{}/{}/git/trees/{}?recursive=1",
         remote.owner(),
         PUBS_REPO,
         branch.git_name()
     );
-    let Ok(http) = client(TREE_TIMEOUT) else {
-        return TreeFetch {
-            artefacts: Vec::new(),
-            rate_remaining: None,
-            error: Some("http client failed".into()),
-        };
-    };
-    let resp = match apply_auth(http.get(&url)).send() {
+    let resp = match apply_auth(client.get(&url).timeout(TREE_TIMEOUT))
+        .send()
+        .await
+    {
         Ok(r) => r,
         Err(e) => {
             return TreeFetch {
@@ -184,7 +179,7 @@ pub fn fetch_branch_tree(remote: PubsRemote, branch: PubsBranch) -> TreeFetch {
     };
     let rate_remaining = rate_from(&resp);
     let status = resp.status().as_u16();
-    let parsed: GitTree = match resp.json() {
+    let parsed: GitTree = match resp.json().await {
         Ok(p) => p,
         Err(e) => {
             return TreeFetch {
@@ -235,7 +230,8 @@ pub fn fetch_branch_tree(remote: PubsRemote, branch: PubsBranch) -> TreeFetch {
 /// # Errors
 ///
 /// Returns a short reason when the HTTP client fails or GitHub responds non-2xx.
-pub fn fetch_file_text(
+pub async fn fetch_file_text(
+    client: &reqwest::Client,
     remote: PubsRemote,
     branch: PubsBranch,
     path: &str,
@@ -246,9 +242,9 @@ pub fn fetch_file_text(
         PUBS_REPO,
         branch.git_name()
     );
-    let http = client(PROBE_TIMEOUT)?;
-    let resp = apply_auth(http.get(&url))
+    let resp = apply_auth(client.get(&url).timeout(PROBE_TIMEOUT))
         .send()
+        .await
         .map_err(|e| format!("request: {e}"))?;
     let status = resp.status().as_u16();
     if status == 404 {
@@ -257,5 +253,24 @@ pub fn fetch_file_text(
     if !(200..300).contains(&status) {
         return Err(format!("http {status}"));
     }
-    resp.text().map_err(|e| format!("body: {e}"))
+    resp.text().await.map_err(|e| format!("body: {e}"))
+}
+
+/// Load `body.md` and subject for one artefact.
+#[must_use]
+pub async fn fetch_preview(
+    client: &reqwest::Client,
+    remote: PubsRemote,
+    branch: PubsBranch,
+    id: String,
+    body_path: String,
+    meta_path: String,
+) -> PreviewFetch {
+    let body = fetch_file_text(client, remote, branch, &body_path).await;
+    let subject = fetch_file_text(client, remote, branch, &meta_path)
+        .await
+        .ok()
+        .map(|m| crate::artefact::subject_from_meta(&m))
+        .unwrap_or_default();
+    PreviewFetch { id, body, subject }
 }
