@@ -12,43 +12,67 @@ pub const DEFAULT_STATUS_URL: &str = "http://127.0.0.1:4700/status";
 /// Last publications-approve / webhook wake fields from `GET /status`.
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 pub struct BatWakeSnapshot {
+    /// Unix seconds when wake was recorded.
     pub at_unix: i64,
+    /// Org/repo that woke BAT.
     pub repo: String,
+    /// Publications PR number (0 if unknown).
     pub pr_number: u64,
+    /// Approving GitHub login.
     pub reviewer: String,
+    /// Wake action string from the webhook handler.
     pub action: String,
+    /// Whether the PR was already merged at wake time.
     pub merged: bool,
+    /// Short human detail from the product.
     pub detail: String,
 }
 
 /// Last GitHub delivery that reached `ITCy`.
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 pub struct GithubDeliverySnapshot {
+    /// Unix seconds of the delivery.
     pub at_unix: i64,
+    /// GitHub `X-GitHub-Event` name.
     pub event: String,
+    /// GitHub delivery id header.
     pub delivery_id: String,
+    /// Handler outcome label.
     pub outcome: String,
+    /// HTTP status returned to GitHub.
     pub http_status: u16,
 }
 
 /// Tor enrich queue + drip side signals from `/status`.
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 pub struct EnrichStatusSnapshot {
+    /// Sources waiting in the enrich queue.
     pub pending: u64,
+    /// Sources currently being enriched.
     pub in_flight: u64,
+    /// Successful enrich count this process.
     pub ok: u64,
+    /// Failed enrich count this process.
     pub failed: u64,
+    /// Skipped enrich count this process.
     pub skip: u64,
+    /// Empty/no-op enrich count this process.
     pub none: u64,
+    /// Queue depth still to process.
     pub queue_remaining: u64,
+    /// Next scheduled enrich wall time (ISO), if any.
     #[serde(default)]
     pub next_enrich_after: Option<String>,
+    /// Consecutive `LinkedIn` wall hits.
     #[serde(default)]
     pub wall_streak: Option<u32>,
+    /// Last source id that hit a wall.
     #[serde(default)]
     pub last_wall_source_id: Option<i64>,
+    /// Enrich worker pid when running.
     #[serde(default)]
     pub enrich_pid: Option<i32>,
+    /// True when an enrich worker is alive.
     #[serde(default)]
     pub enrich_running: bool,
 }
@@ -56,25 +80,38 @@ pub struct EnrichStatusSnapshot {
 /// Provider pool + failover routes + webhook fields from the always-on binary.
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 pub struct RuntimeStatus {
+    /// Configured LLM provider labels.
     pub providers: Vec<String>,
+    /// First freeform route candidate.
     pub freeform_route_head: String,
+    /// Full freeform route chain text.
     pub freeform_route: String,
+    /// First load route candidate.
     #[serde(default = "default_route_empty")]
     pub load_route_head: String,
+    /// Full load route chain text.
     #[serde(default = "default_route_empty")]
     pub load_route: String,
+    /// First draft route candidate.
     pub draft_route_head: String,
+    /// Full draft route chain text.
     pub draft_route: String,
+    /// True when webhook secret is configured (wake path ready).
     #[serde(default)]
     pub github_webhook_configured: bool,
+    /// Last BAT wake snapshot, if any.
     #[serde(default)]
     pub last_bat_wake: Option<BatWakeSnapshot>,
+    /// Last GitHub delivery snapshot, if any.
     #[serde(default)]
     pub last_github_delivery: Option<GithubDeliverySnapshot>,
+    /// Operator-facing delivery warning, if any.
     #[serde(default)]
     pub github_delivery_warn: Option<String>,
+    /// Enrich queue snapshot, if exposed.
     #[serde(default)]
     pub enrich: Option<EnrichStatusSnapshot>,
+    /// Tor listen snapshot, if exposed.
     #[serde(default)]
     pub tor: Option<TorListenSnapshot>,
 }
@@ -82,9 +119,13 @@ pub struct RuntimeStatus {
 /// Tor SOCKS + control listen from product `/status`.
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 pub struct TorListenSnapshot {
+    /// Overall Tor ready flag.
     pub ok: bool,
+    /// SOCKS listen ok.
     pub socks_ok: bool,
+    /// Control port listen ok.
     pub control_ok: bool,
+    /// Short detail string from the product.
     #[serde(default)]
     pub detail: String,
 }
@@ -339,7 +380,7 @@ mod tests {
     fn webhook_detail_when_secret_missing() {
         assert!(sample()
             .webhook_detail()
-            .contains("GITHUB_WEBHOOK_SECRET unset"));
+            .contains("wake not ready; POST /hooks/github"));
     }
 
     #[test]

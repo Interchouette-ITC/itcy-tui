@@ -27,8 +27,13 @@ pub fn replace_health_path(health_url: &str, new_path: &str) -> Option<String> {
 /// Result of probing the product `/health` endpoint.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HealthStatus {
+    /// Body was `ok` with HTTP 200.
     Ok,
-    Down { reason: String },
+    /// Probe failed or body was not `ok`.
+    Down {
+        /// Short reason for the pane.
+        reason: String,
+    },
 }
 
 impl HealthStatus {
