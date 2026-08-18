@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Interchouette <contact@interchouette.net>"]
 license = "BUSL-1.1"
-description = "ITCy ratatui status TUI"
+description = "ITCy terminal: publications browser and live status"
 default-run = "itcy-tui"
 
 [dependencies]

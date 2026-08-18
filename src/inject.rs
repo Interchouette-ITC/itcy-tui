@@ -1,12 +1,12 @@
 // Copyright (c) 2026 Interchouette-ITC
 // SPDX-License-Identifier: BUSL-1.1
 
-//! Localhost slash inject via `POST /entrypoint/slash`.
+//! Localhost `POST /entrypoint/slash` for read-only `/list`.
 
 use crate::health::{replace_health_path, PROBE_TIMEOUT};
 use serde::{Deserialize, Serialize};
 
-/// Default inject URL derived from product health.
+/// Default slash URL derived from product health.
 pub const DEFAULT_ENTRYPOINT_SLASH_URL: &str = "http://127.0.0.1:4700/entrypoint/slash";
 
 #[derive(Serialize)]
@@ -44,7 +44,7 @@ pub async fn fetch_saved_list(
         .map_err(|e| format!("request: {e}"))?;
     let status = resp.status().as_u16();
     if status == 503 {
-        return Err("ITCy inject not ready".into());
+        return Err("ITCy /list not ready".into());
     }
     if !(200..300).contains(&status) {
         let body = resp.text().await.unwrap_or_default();

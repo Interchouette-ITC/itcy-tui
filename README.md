@@ -5,9 +5,9 @@ Terminal for **ITCy**, Interchouette ITC's AI LinkedIn operator.
 Built with [ratatui](https://ratatui.rs/). One chrome, four views:
 
 - **Publications (`p`):** public GitHub trees for [itcy-publications](https://github.com/Interchouette-ITC/itcy-publications) (org and fork; `drafts`, `posts`, `drafts_tweet`, `tweets`). Works with no ITCy process.
-- **Live (`d`):** when the [ITCy](https://github.com/Interchouette-ITC/itcy) binary is up, probes `GET /health` and `GET /status`, plus org ingress [itc-hooks](https://github.com/Interchouette-ITC/itc-hooks).
-- **Commands (`c`):** slash catalog. Enter on `/list` injects a read-only list when the product is up.
-- **Saved list (`s`):** parsed `/list` table. Needs the live product.
+- **Live (`d`):** when the [ITCy](https://github.com/Interchouette-ITC/itcy) binary is up, probes `GET /health` and `GET /status`.
+- **Commands (`c`):** slash catalog. Enter on `/list` loads saved drafts when the product is up.
+- **Saved list (`s`):** `/list` table. Needs the live product.
 
 ## Run
 
@@ -30,7 +30,7 @@ Quit with `q` or Ctrl-C. `Esc` never quits: it closes `/` filter, `:` command, o
 | `?` | Help |
 | `:` | Command palette (Tab complete, Up/Down history) |
 | `/` | Filter the current table (`n/N`) |
-| `y` | Copy selected id (OSC 52; mouse capture disables native select) |
+| `y` | Copy selected id |
 | `r` | Refresh probes; refetch GitHub tree on pubs; re-run `/list` |
 | `o` / `f` | Org / fork (publications) |
 | `1`-`4` | drafts / posts / drafts_tweet / tweets |
@@ -45,13 +45,13 @@ Colon commands: `live` `commands` `pubs` `list` `help` `org` `fork` `drafts` `po
 
 ## What you see
 
-**Live:** ITCy health, ingress open/down, model routes, GitHub hooks delivery, enrich-queue progress, Tor. Product logs stay with the ITCy process. Public org webhook path is on itc-hooks (`POST /github/webhook_ITC`); ITCy receives `POST /hooks/github` only.
+**Live:** ITCy health, ingress, model routes, GitHub delivery, enrich queue, Tor. Product logs stay with the ITCy process.
 
-**Publications:** id, `YYYY/MM` shard, subject (filled after a body load this session), `body.md` preview. Selection loads after 400ms; Enter loads now. The selected id stays large in the footer for `y`.
+**Publications:** id, optional `YYYY/MM` shard, subject (filled after a body load this session), `body.md` preview. Selection loads after a short pause; Enter loads now. The selected id stays in the footer for `y`.
 
-**Commands:** slash table. Click selects; Enter on `/list` injects when ITCy is up. Other rows are documentation.
+**Commands:** slash table. Click selects; Enter on `/list` loads saved drafts when ITCy is up. Other rows are reference.
 
-**Saved list:** id, status, subject from `/list`. Grey / empty when the product is down.
+**Saved list:** id, status, subject from `/list`. Empty when the product is down.
 
 ## License
 
