@@ -283,18 +283,14 @@ impl RuntimeStatus {
     }
 }
 
-/// Fetches `/status`. Network / parse errors return `None`.
+/// GETs `/status` JSON. Network / parse errors return `None`.
 #[must_use]
-pub fn fetch_status(url: &str) -> Option<RuntimeStatus> {
-    let client = reqwest::blocking::Client::builder()
-        .timeout(PROBE_TIMEOUT)
-        .build()
-        .ok()?;
-    let resp = client.get(url).send().ok()?;
+pub async fn fetch_status(client: &reqwest::Client, url: &str) -> Option<RuntimeStatus> {
+    let resp = client.get(url).timeout(PROBE_TIMEOUT).send().await.ok()?;
     if !resp.status().is_success() {
         return None;
     }
-    resp.json().ok()
+    resp.json().await.ok()
 }
 
 /// Shared enrich snapshot for unit tests (ui + status).
