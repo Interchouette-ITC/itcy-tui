@@ -8,7 +8,7 @@ use std::time::Duration;
 /// Default product health URL (see itcy `backend/config.toml`).
 pub const DEFAULT_HEALTH_URL: &str = "http://127.0.0.1:4700/health";
 
-/// Org webhook ingress (`itc-hooks`) health URL.
+/// Ingress health URL.
 pub const DEFAULT_INGRESS_HEALTH_URL: &str = "http://127.0.0.1:7007/health";
 
 /// HTTP client timeout for `/health` and `/status` probes.

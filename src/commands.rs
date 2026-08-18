@@ -16,7 +16,7 @@ pub struct SlashCommand {
     pub stub: bool,
 }
 
-/// Authoritative TUI catalog (mirrors Slack help).
+/// Authoritative TUI catalog (mirrors product help).
 pub const SLASH_COMMANDS: &[SlashCommand] = &[
     SlashCommand {
         usage: "help",
@@ -144,7 +144,7 @@ pub const HELP_TEXT_COMMAND_PREFIXES: &[&str] = &[
     "/accept_comment_reply",
 ];
 
-/// Snapshot of product `help_text()` used to detect TUI/Slack catalog drift in tests.
+/// Snapshot of product `help_text()` used to detect TUI catalog drift in tests.
 pub const PRODUCT_HELP_TEXT_SNAPSHOT: &str = "\
 ITCy runtime (`#itcy`).\n\
 *Keywords (type in channel):*\n\

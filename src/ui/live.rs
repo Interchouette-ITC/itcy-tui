@@ -73,7 +73,7 @@ fn health_lines(model: &StatusModel) -> Vec<Line<'static>> {
         ),
     };
     let (ingress_color, ingress_detail) = match &model.ingress_health {
-        HealthStatus::Ok => (Color::LightGreen, "itc-hooks /health ok".to_string()),
+        HealthStatus::Ok => (Color::LightGreen, "ingress /health ok".to_string()),
         HealthStatus::Down { reason } => (Color::LightRed, reason.clone()),
     };
     vec![

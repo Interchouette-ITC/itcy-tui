@@ -19,7 +19,7 @@ const HELP: &[&str] = &[
     ":                          command (Tab complete, Up/Down history)",
     "/                          filter current table",
     "r                          refresh probes; refetch tree on pubs; re-run /list",
-    "y                          copy selected id (OSC 52)",
+    "y                          copy selected id",
     "",
     "publications",
     "  o / f                    org / fork",
@@ -32,7 +32,7 @@ const HELP: &[&str] = &[
     "",
     ":live :commands :pubs :list :help :org :fork :reload :open <id>",
     "",
-    "commands: Enter on /list runs localhost inject (read). Writes stay in Slack.",
+    "commands: Enter on /list loads saved drafts. Other rows are reference.",
 ];
 
 pub fn draw_help(frame: &mut Frame, area: Rect, model: &mut StatusModel) {
