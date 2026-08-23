@@ -319,7 +319,7 @@ mod tests {
         model.view = ViewMode::Publications;
         model.pubs.artefacts = vec![
             fixture_artefact("DRAFT-20260801-000001", None),
-            fixture_artefact("TWEET-20260813-000001", Some("2026/08")),
+            fixture_artefact("TWEET-20260813-000001", Some("2026/08/13")),
         ];
         model.pubs.body = "hello vitrine body".into();
         model.pubs.artefacts[0].subject = "owl merge".into();
@@ -329,7 +329,7 @@ mod tests {
             flat.contains("DRAFT-20260801-000001"),
             "missing draft: {flat}"
         );
-        assert!(flat.contains("2026/08"), "missing shard: {flat}");
+        assert!(flat.contains("2026/08/13"), "missing shard: {flat}");
         assert!(flat.contains("hello vitrine body"), "missing body: {flat}");
         assert!(flat.contains("p:pubs"), "missing pubs tab: {flat}");
         assert!(flat.contains("o:org"), "missing org chip: {flat}");
@@ -350,7 +350,7 @@ mod tests {
         );
         model.pubs.artefacts = vec![
             fixture_artefact("DRAFT-20260801-000001", None),
-            fixture_artefact("TWEET-20260813-000001", Some("2026/08")),
+            fixture_artefact("TWEET-20260813-000001", Some("2026/08/13")),
         ];
         model.pubs.artefacts[1].subject = "owl merge".into();
         model.pubs.set_filter("owl".into());
@@ -455,7 +455,7 @@ mod tests {
         );
         model.pubs.artefacts = vec![
             fixture_artefact("DRAFT-20260801-000001", None),
-            fixture_artefact("TWEET-20260813-000001", Some("2026/08")),
+            fixture_artefact("TWEET-20260813-000001", Some("2026/08/13")),
         ];
         assert!(model.pubs.open_prefix("tweet"));
         assert_eq!(

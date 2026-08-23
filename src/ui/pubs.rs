@@ -84,7 +84,7 @@ fn draw_list(frame: &mut Frame, area: Rect, model: &mut StatusModel) {
         rows,
         [
             Constraint::Min(22),
-            Constraint::Length(8),
+            Constraint::Length(10),
             Constraint::Min(12),
         ],
     )

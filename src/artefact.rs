@@ -1,14 +1,14 @@
 // Copyright (c) 2026 Interchouette-ITC
 // SPDX-License-Identifier: BUSL-1.1
 
-//! Parse publication artefact paths (flat and YYYY/MM shards).
+//! Parse publication artefact paths (flat, legacy YYYY/MM, and YYYY/MM/DD shards).
 
 /// One artefact folder on a publications branch.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Artefact {
     /// Folder id (`DRAFT-…`, `POST-…`, `TWEET-…`, `XPOST-…`).
     pub id: String,
-    /// `YYYY/MM` when the tree is sharded.
+    /// `YYYY/MM` or `YYYY/MM/DD` when the tree is sharded.
     pub shard: Option<String>,
     /// Path to `body.md`.
     pub body_path: String,
@@ -47,14 +47,20 @@ fn shard_prefix(path: &str) -> Option<String> {
     let mut parts = path.split('/');
     let year = parts.next()?;
     let month = parts.next()?;
-    if year.len() == 4
-        && year.bytes().all(|b| b.is_ascii_digit())
-        && month.len() == 2
-        && month.bytes().all(|b| b.is_ascii_digit())
+    if year.len() != 4
+        || !year.bytes().all(|b| b.is_ascii_digit())
+        || month.len() != 2
+        || !month.bytes().all(|b| b.is_ascii_digit())
     {
-        Some(format!("{year}/{month}"))
+        return None;
+    }
+    let Some(day) = parts.next() else {
+        return Some(format!("{year}/{month}"));
+    };
+    if day.len() == 2 && day.bytes().all(|b| b.is_ascii_digit()) {
+        Some(format!("{year}/{month}/{day}"))
     } else {
-        None
+        Some(format!("{year}/{month}"))
     }
 }
 
@@ -86,10 +92,17 @@ mod tests {
         assert_eq!(flat.meta_path, "TWEET-20260813-000001/meta.toml");
 
         let shard =
-            artefact_from_body_path("2026/08/XPOST-20260813-000001/body.md").expect("shard");
+            artefact_from_body_path("2026/08/13/XPOST-20260813-000001/body.md").expect("shard");
         assert_eq!(shard.id, "XPOST-20260813-000001");
-        assert_eq!(shard.shard.as_deref(), Some("2026/08"));
-        assert_eq!(shard.meta_path, "2026/08/XPOST-20260813-000001/meta.toml");
+        assert_eq!(shard.shard.as_deref(), Some("2026/08/13"));
+        assert_eq!(
+            shard.meta_path,
+            "2026/08/13/XPOST-20260813-000001/meta.toml"
+        );
+
+        let legacy =
+            artefact_from_body_path("2026/08/XPOST-20260813-000001/body.md").expect("legacy");
+        assert_eq!(legacy.shard.as_deref(), Some("2026/08"));
 
         let draft = artefact_from_body_path("DRAFT-20260801-000001/body.md").expect("draft");
         assert_eq!(draft.id, "DRAFT-20260801-000001");
