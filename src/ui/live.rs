@@ -6,7 +6,7 @@
 use super::model::StatusModel;
 use super::style::{pane_block, ACCENT, LABEL, MUTED};
 use crate::health::HealthStatus;
-use crate::status::{EnrichStatusSnapshot, RuntimeStatus, TorListenSnapshot};
+use crate::status::{EnrichStatusSnapshot, LinkedInMcpSnapshot, RuntimeStatus, TorListenSnapshot};
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
@@ -106,6 +106,7 @@ fn runtime_lines(model: &StatusModel) -> Vec<Line<'static>> {
             lines.extend(delivery_lines(rt));
             lines.extend(enrich_lines(rt.enrich.as_ref()));
             lines.extend(tor_lines(rt.tor.as_ref()));
+            lines.extend(linkedin_mcp_lines(rt.linkedin_mcp.as_ref()));
             lines
         },
     )
@@ -242,6 +243,37 @@ fn tor_lines(tor: Option<&TorListenSnapshot>) -> Vec<Line<'static>> {
                 t.detail.clone()
             };
             vec![bold_status_line("tor:", &detail, color)]
+        },
+    )
+}
+
+fn linkedin_mcp_lines(mcp: Option<&LinkedInMcpSnapshot>) -> Vec<Line<'static>> {
+    mcp.map_or_else(
+        || {
+            vec![labeled(
+                "linkedin-mcp:",
+                "(unavailable)",
+                Style::default().fg(Color::Yellow),
+            )]
+        },
+        |m| {
+            let color = if m.ok {
+                Color::LightGreen
+            } else {
+                Color::LightRed
+            };
+            let detail = if m.detail.is_empty() {
+                if m.ok {
+                    m.listen_addr.clone()
+                } else {
+                    "down".into()
+                }
+            } else if m.ok && !m.listen_addr.is_empty() {
+                format!("{} ({})", m.detail, m.listen_addr)
+            } else {
+                m.detail.clone()
+            };
+            vec![bold_status_line("linkedin-mcp:", &detail, color)]
         },
     )
 }

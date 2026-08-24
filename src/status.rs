@@ -114,6 +114,9 @@ pub struct RuntimeStatus {
     /// Tor listen snapshot, if exposed.
     #[serde(default)]
     pub tor: Option<TorListenSnapshot>,
+    /// `LinkedIn` HTTP MCP listen snapshot, if exposed.
+    #[serde(default)]
+    pub linkedin_mcp: Option<LinkedInMcpSnapshot>,
 }
 
 /// Tor SOCKS + control listen from product `/status`.
@@ -125,6 +128,22 @@ pub struct TorListenSnapshot {
     pub socks_ok: bool,
     /// Control port listen ok.
     pub control_ok: bool,
+    /// Short detail string from the product.
+    #[serde(default)]
+    pub detail: String,
+}
+
+/// `LinkedIn` HTTP MCP listen from product `/status`.
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+pub struct LinkedInMcpSnapshot {
+    /// Overall MCP ready flag.
+    pub ok: bool,
+    /// Configured MCP URL (no secrets).
+    #[serde(default)]
+    pub url: String,
+    /// Host:port probed.
+    #[serde(default)]
+    pub listen_addr: String,
     /// Short detail string from the product.
     #[serde(default)]
     pub detail: String,
@@ -332,6 +351,7 @@ mod tests {
             github_delivery_warn: None,
             enrich: None,
             tor: None,
+            linkedin_mcp: None,
         }
     }
 

@@ -47,7 +47,7 @@ Colon commands: `live` `commands` `pubs` `list` `help` `org` `fork` `drafts` `po
 
 **Live:** ITCy health, ingress, model routes, GitHub delivery, enrich queue, Tor. Product logs stay with the ITCy process.
 
-**Publications:** id, optional `YYYY/MM` shard, subject (filled after a body load this session), `body.md` preview. Selection loads after a short pause; Enter loads now. The selected id stays in the footer for `y`.
+**Publications:** id, optional `YYYY/MM/DD` shard, subject (filled after a body load this session), `body.md` preview. Selection loads after a short pause; Enter loads now. The selected id stays in the footer for `y`.
 
 **Commands:** slash table. Click selects; Enter on `/list` loads saved drafts when ITCy is up. Other rows are reference.
 
