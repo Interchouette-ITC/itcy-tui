@@ -211,7 +211,9 @@ mod tests {
     use crate::artefact::Artefact;
     use crate::health::DEFAULT_HEALTH_URL;
     use crate::status::DEFAULT_STATUS_URL;
-    use crate::status::{GithubDeliverySnapshot, RuntimeStatus, TorListenSnapshot};
+    use crate::status::{
+        GithubDeliverySnapshot, LinkedInMcpSnapshot, RuntimeStatus, TorListenSnapshot,
+    };
     use ratatui::backend::TestBackend;
     use ratatui::Terminal;
 
@@ -239,6 +241,12 @@ mod tests {
                 ok: true,
                 socks_ok: true,
                 control_ok: true,
+                detail: "ok".into(),
+            }),
+            linkedin_mcp: Some(LinkedInMcpSnapshot {
+                ok: true,
+                url: "http://127.0.0.1:4780/mcp".into(),
+                listen_addr: "127.0.0.1:4780".into(),
                 detail: "ok".into(),
             }),
         }
